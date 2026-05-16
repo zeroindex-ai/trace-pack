@@ -1,0 +1,48 @@
+{
+  "name": "trace-pack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Minimal LLM observability dashboard for Claude-based apps. Companion to @zeroindex-ai/eval-pack.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.17.3",
+    "next": "16.2.4",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "recharts": "^2.15.0",
+    "zod": "^4.4.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.4",
+    "tailwindcss": "^4",
+    "tsx": "^4.21.0",
+    "typescript": "^5",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zeroindex-ai/trace-pack.git"
+  },
+  "homepage": "https://github.com/zeroindex-ai/trace-pack#readme",
+  "bugs": {
+    "url": "https://github.com/zeroindex-ai/trace-pack/issues"
+  },
+  "license": "MIT",
+  "packageManager": "pnpm@10.0.0"
+}
