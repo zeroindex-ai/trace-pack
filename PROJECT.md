@@ -38,7 +38,7 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 | Public dashboard live | `trace.zeroindex.ai` serves real `ask-zeroindex` traffic | ✅ |
 | Ingestion contract documented | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim | ✅ |
 | Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 (fire-and-forget POST) | ✅ |
-| Linked from the marketing site | `zeroindex.ai` Observability use-case card gains a "See live traces →" link | ⏳ |
+| Linked from the marketing site | `zeroindex.ai` Observability use-case card gains a "See live traces →" link | ✅ |
 | Owner-only admin view | `/admin` shows full traces, error feed, drill-down behind auth | ✅ |
 | Daily rollup keeps homepage cheap | Homepage SSR fetches one row per visible day, not raw events | ✅ |
 
@@ -376,7 +376,7 @@ v0.1 work-list. Status markers reflect current state.
 10. ✅ **`/admin/[id]` page.** Single-event drill-down with typed-fields KV list and pretty-printed `raw_json`. Prev/next neighbors via direct ts+source lookup.
 11a. ✅ **Apply zeroindex.ai design language.** Tailwind v4, full STYLE_GUIDE palette on `:root` (+ dashboard-only `--warn`/`--error` for outcome semantics), Tier B header matching `evals-site`, canonical 5-file favicon set.
 11. ✅ **Custom domain.** Cloudflare DNS A record → `76.76.21.21`, gray-cloud; SSL auto-issued.
-12. ⏳ **Link from `zeroindex.ai`.** Observability use-case card gains a "See live traces →" link, mirroring the existing "See live evals →" pattern on the Truth principle card.
+12. ✅ **Link from `zeroindex.ai`.** Observability use-case card gains a "See live traces →" link, mirroring the existing "See live evals →" pattern on the Truth principle card.
 13. ✅ **Top-level README + Q&A snippets.** README reflects shipped state with links to live site and companion `eval-pack`.
 
 ---
