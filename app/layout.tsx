@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'trace-pack · ZeroIndex',
+  title: 'Traces · ZeroIndex',
   description: 'Live observability for Claude-based applications. Companion to eval-pack.',
 };
 

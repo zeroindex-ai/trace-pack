@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/db/client';
@@ -5,6 +6,8 @@ import { fmtMs, fmtTs } from '@/lib/format';
 import { eventById, neighbors } from '@/queries/admin';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Traces Admin · ZeroIndex' };
 
 function prettyJson(raw: string): string {
   try {

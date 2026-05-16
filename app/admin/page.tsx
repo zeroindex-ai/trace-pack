@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/db/client';
 import { OUTCOMES } from '@/ingest/schema';
@@ -11,6 +12,8 @@ import {
 } from '@/queries/admin';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Traces Admin · ZeroIndex' };
 
 const SOURCE = process.env.DEFAULT_SOURCE ?? 'ask-zeroindex';
 const PAGE_SIZE = 50;
