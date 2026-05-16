@@ -1,6 +1,6 @@
 # trace-pack — Project Documentation
 
-> **Status: planning** — public dashboard at `trace.zeroindex.ai` (planned). v0.1 work-list not yet started.
+> **Status: shipped v0.1** — public dashboard live at [trace.zeroindex.ai](https://trace.zeroindex.ai), serving real `ask-zeroindex` traffic via the optional dual-write in its `logAsk` path.
 
 This document captures the scope, strategic decisions, architecture, public contracts, distribution shape, and ordered work list for `trace-pack`. It exists to:
 
@@ -35,12 +35,12 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 
 | Goal | Metric | Status |
 |---|---|---|
-| Public dashboard live | `trace.zeroindex.ai` serves real `ask-zeroindex` traffic | ⏳ |
-| Ingestion contract documented | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim | ⏳ |
-| Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 | ⏳ |
+| Public dashboard live | `trace.zeroindex.ai` serves real `ask-zeroindex` traffic | ✅ |
+| Ingestion contract documented | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim | ✅ |
+| Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 (fire-and-forget POST) | ✅ |
 | Linked from the marketing site | `zeroindex.ai` Observability use-case card gains a "See live traces →" link | ⏳ |
-| Owner-only admin view | `/admin` shows full traces, error feed, drill-down behind auth | ⏳ |
-| Daily rollup keeps homepage cheap | Homepage SSR fetches one row per visible day, not raw events | ⏳ |
+| Owner-only admin view | `/admin` shows full traces, error feed, drill-down behind auth | ✅ |
+| Daily rollup keeps homepage cheap | Homepage SSR fetches one row per visible day, not raw events | ✅ |
 
 ### Out of scope (for v0.1)
 
@@ -364,20 +364,20 @@ trace-pack/
 
 v0.1 work-list. Status markers reflect current state.
 
-1. ⏳ **Scaffold the repo.** `pnpm init`, `tsconfig.json`, ESLint, Vitest, Next.js 16 app structure, CI workflow, MIT `LICENSE`, placeholder `README.md`.
-2. ⏳ **Provision Turso database.** Create `trace-pack` libsql database; capture `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN` as Vercel env vars.
-3. ⏳ **Implement migrations.** `src/db/migrations/001_init.sql` (events table) + `002_rollup.sql` (rollup_daily). Idempotent runner script.
-4. ⏳ **Implement `/api/ingest`.** Zod schema, bearer auth from env (`SOURCE_TOKEN_<NAME>` convention), insert-or-ignore. Vitest covers happy path, 400 on bad shape, 401 on bad token, idempotency on duplicate POST.
-5. ⏳ **Patch `ask-zeroindex` `logAsk`.** Add `TRACE_PACK_URL` + `TRACE_PACK_TOKEN` env vars; if both set, `fetch.keepalive` POST in addition to `console.log`. No-op if env not set. PR includes unit test for the no-env case (no network call) and the env case (one network call, errors swallowed).
-6. ⏳ **Backfill script.** `scripts/backfill.ts` reads `vercel logs --json` for the `ask-zeroindex` project, filters `event=ask`, POSTs each event to `/api/ingest`. Idempotency handles re-runs.
-7. ⏳ **Implement `/api/rollup`.** Single SQL per source aggregating yesterday's events into `rollup_daily`. Vercel Cron config in `vercel.json`. Endpoint guarded by `CRON_SECRET`.
-8. ⏳ **Public `/` page.** SSR the 5 charts. One query per chart, executed in parallel.
-9. ⏳ **`/admin` page.** Middleware basic-auth + events table + error feed + question-cluster view.
-10. ⏳ **`/admin/[id]` page.** Single-event drill-down rendering all typed fields + `raw_json` pretty-printed.
-11a. ⏳ **Apply zeroindex.ai design language.** Map the dashboard typography, color palette, and component surfaces (cards, charts, headings) to the shared visual system before first deploy.
-11. ⏳ **Custom domain.** Cloudflare DNS → Vercel; attach `trace.zeroindex.ai`.
+1. ✅ **Scaffold the repo.** Next.js 16, ESLint, Vitest, CI workflow, MIT `LICENSE`.
+2. ✅ **Provision Turso database.** `trace-pack` libsql database created; creds stored in 1Password and Vercel.
+3. ✅ **Implement migrations.** `001_init.sql` (events) + `002_rollup.sql` (rollup_daily). Idempotent runner at `src/db/migrate.ts`; one-off prod runner at `scripts/migrate-prod.ts`.
+4. ✅ **Implement `/api/ingest`.** Zod schema with `passthrough()` for forward-compat, per-source bearer auth via `SOURCE_TOKEN_<NAME>` env-var convention, timing-safe compare, `INSERT OR IGNORE` for idempotency.
+5. ✅ **Patch `ask-zeroindex` `logAsk`.** Extracted to `src/lib/logAsk.ts`; env-gated fire-and-forget POST with `keepalive: true`; errors swallowed, never throws to the route.
+6. ✅ **Backfill script.** `scripts/backfill.ts` reads vercel logs JSON (`--source serverless --expand` per Next 16 CLI), parses both envelope and direct shapes, bounded concurrency, idempotent via the ingest endpoint's INSERT OR IGNORE.
+7. ✅ **Implement `/api/rollup`.** Per-source aggregation into `rollup_daily`. Vercel Cron `15 0 * * *`. Endpoint guarded by `CRON_SECRET` with timing-safe compare. Supports `?day=` manual replay.
+8. ✅ **Public `/` page.** SSR 5 charts with `force-dynamic`; reads `rollup_daily` for past days, computes today live from `events`.
+9. ✅ **`/admin` page.** `proxy.ts` basic-auth gate (Next 16 rename of `middleware.ts`); events table with pagination + outcome filter, error feed, question clusters.
+10. ✅ **`/admin/[id]` page.** Single-event drill-down with typed-fields KV list and pretty-printed `raw_json`. Prev/next neighbors via direct ts+source lookup.
+11a. ✅ **Apply zeroindex.ai design language.** Tailwind v4, full STYLE_GUIDE palette on `:root` (+ dashboard-only `--warn`/`--error` for outcome semantics), Tier B header matching `evals-site`, canonical 5-file favicon set.
+11. ✅ **Custom domain.** Cloudflare DNS A record → `76.76.21.21`, gray-cloud; SSL auto-issued.
 12. ⏳ **Link from `zeroindex.ai`.** Observability use-case card gains a "See live traces →" link, mirroring the existing "See live evals →" pattern on the Truth principle card.
-13. ⏳ **Top-level README + Q&A snippets.** Install/consume snippet for any consumer wanting to point their app at `trace-pack`.
+13. ✅ **Top-level README + Q&A snippets.** README reflects shipped state with links to live site and companion `eval-pack`.
 
 ---
 
@@ -435,6 +435,8 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 | 2026-05-15 | SSR everything, no client-side data fetches | Four-page dashboard, simple queries. Pay no SPA tax. |
 | 2026-05-15 | Basic auth on `/admin` for v0.1 | Single-owner dashboard. Real auth provider waits for multi-user. |
 | 2026-05-15 | Daily rollup + on-the-fly today aggregation | Cheap homepage queries without losing same-day visibility. |
+| 2026-05-16 | `favicon.ico` lives at `app/favicon.ico`, not `public/` | Next 16 app-router intercepts `/favicon.ico` and 404s when the file is only in `public/`. App auto-injects the corresponding `<link>` tag; keep manual `<link>` tags only for the sized PNGs + SVG + apple-touch-icon which remain in `public/`. |
+| 2026-05-16 | TURSO creds non-Sensitive on Vercel; tokens stay Sensitive | Vercel "Sensitive" env vars are not pullable via `vercel env pull`; running one-off migrations against prod requires the values reachable from the operator's terminal. Compromise: Turso URL+token are also stored in 1Password, the operator pulls via `op read` rather than `vercel env pull`. |
 
 ---
 
