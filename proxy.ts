@@ -1,21 +1,20 @@
+// Next 16 renamed middleware.ts to proxy.ts (project root). This file is the
+// Next middleware running basic auth on /admin — NOT an HTTP/LLM proxy.
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { timingSafeEqual } from 'node:crypto';
+import { safeEqual } from '@/lib/timingSafeCompare';
 
 export function proxy(request: NextRequest) {
   const expected = process.env.ADMIN_PASSWORD;
   if (!expected) {
-    return new NextResponse('Admin not configured (set ADMIN_PASSWORD).', { status: 500 });
+    console.error('[trace-pack] ADMIN_PASSWORD not set — admin gate misconfigured');
+    return new NextResponse('Service temporarily unavailable.', { status: 503 });
   }
 
   const expectedHeader = 'Basic ' + Buffer.from(`admin:${expected}`).toString('base64');
   const provided = request.headers.get('authorization') ?? '';
 
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expectedHeader);
-  const ok = a.length === b.length && timingSafeEqual(a, b);
-
-  if (!ok) {
+  if (!safeEqual(expectedHeader, provided)) {
     return new NextResponse('Unauthorized', {
       status: 401,
       headers: { 'WWW-Authenticate': 'Basic realm="trace-pack admin"' },

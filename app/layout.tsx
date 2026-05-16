@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import Script from 'next/script';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -57,11 +58,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </footer>
         </div>
 
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var h=document.getElementById('siteHeader');if(!h)return;function f(){h.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f()})();`,
-          }}
-        />
+        <Script id="sticky-header-listener" strategy="afterInteractive">
+          {`(function(){var h=document.getElementById('siteHeader');if(!h)return;function f(){h.classList.toggle('scrolled',window.scrollY>4)}window.addEventListener('scroll',f,{passive:true});f()})();`}
+        </Script>
       </body>
     </html>
   );

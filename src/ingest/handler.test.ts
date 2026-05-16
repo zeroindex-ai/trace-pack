@@ -122,6 +122,36 @@ describe('handleIngest', () => {
     expect(Number(rows.rows[0]?.n)).toBe(1);
   });
 
+  it('413s when content-length header declares a body over the cap', async () => {
+    // Mock a Request whose content-length header reports an over-cap size,
+    // regardless of the actual body. Real fetch clients can send this when
+    // streaming or with manually-set headers.
+    const req = {
+      headers: new Headers({
+        'content-type': 'application/json',
+        authorization: `Bearer ${VALID_TOKEN}`,
+        'content-length': '9000',
+      }),
+      text: async () => JSON.stringify(validEvent()),
+    } as unknown as Request;
+    const res = await handleIngest(client, req);
+    expect(res.status).toBe(413);
+    const body = await res.json();
+    expect(body.error).toBe('payload_too_large');
+  });
+
+  it('413s when the actual body exceeds the cap (regardless of header)', async () => {
+    // Build a body larger than 8192 bytes by inflating the question field.
+    const huge = validEvent({ question: 'x'.repeat(9000) });
+    const res = await handleIngest(
+      client,
+      ingestRequest(huge, { auth: `Bearer ${VALID_TOKEN}` })
+    );
+    expect(res.status).toBe(413);
+    const body = await res.json();
+    expect(body.error).toBe('payload_too_large');
+  });
+
   it('stores unknown fields in raw_json via passthrough', async () => {
     const extended = { ...validEvent(), inputTokens: 1234, outputTokens: 567 };
     const res = await handleIngest(

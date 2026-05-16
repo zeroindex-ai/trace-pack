@@ -95,7 +95,7 @@ Load-bearing decisions, documented because the *why* often outlasts the *what*.
 | **Multi-tenancy** | `source` column on every row, indexed with `ts` | v0.1 ships with one source. Adding a second is a token + a UI selector — no schema change. |
 | **Storage of question text** | Stored on the server, never rendered on the public homepage, rendered on the auth-gated admin view | The privacy-sensitive content stays behind auth; the public face is aggregates only. |
 | **Aggregation strategy** | Daily rollup table refreshed by Vercel Cron at 00:15 UTC + on-the-fly aggregation for "today" | Homepage SSR reads one row per visible day from `rollup_daily` + a single aggregation query for the in-flight day. Avoids percentile-over-30-days queries on every page load. |
-| **Percentile computation** | SQLite window functions over the day window for rollup; computed for `total_ms` and `first_token_ms` | Honest p50/p95/p99 without external tools. At Turso's scale, fine. |
+| **Percentile computation** | JS percentile computation over rows pulled for the day window — simpler than SQLite's lack of native percentile UDF, fine at v0.1 traffic levels. | Honest p50/p95/p99 without external tools. At Turso's scale, fine. |
 | **Idempotency** | `(source, ts, question_hash)` natural key with `INSERT OR IGNORE` | Duplicate replays from a consumer retry don't create double-count. Not strict idempotency — collisions are rare and benign. |
 | **Backfill path** | One-shot script reads `vercel logs --json`, filters `event=ask`, POSTs to `/api/ingest` | The current consumer's history lives in Vercel logs. Backfill makes the dashboard non-empty on day one. |
 

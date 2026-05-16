@@ -1,3 +1,5 @@
+import { safeEqual } from '@/lib/timingSafeCompare';
+
 export function expectedTokenForSource(source: string): string | undefined {
   const key = 'SOURCE_TOKEN_' + source.toUpperCase().replace(/-/g, '_');
   return process.env[key];
@@ -14,10 +16,5 @@ export function authenticate(source: string, authHeader: string | null | undefin
   if (!expected) return false;
   const provided = extractBearer(authHeader);
   if (!provided) return false;
-  if (provided.length !== expected.length) return false;
-  let diff = 0;
-  for (let i = 0; i < provided.length; i++) {
-    diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
-  }
-  return diff === 0;
+  return safeEqual(expected, provided);
 }

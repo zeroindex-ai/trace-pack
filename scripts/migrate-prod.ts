@@ -26,9 +26,10 @@ async function main() {
   }
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
-  // Mask the database identifier so the target appears in logs without exposing
-  // the full hostname (which is paired with a token in 1Password).
-  const masked = url.replace(/libsql:\/\/[^.]+/, 'libsql://***');
+  // Mask the entire hostname so the target appears in logs without exposing
+  // it (the hostname is paired with a token in 1Password). Matches everything
+  // between `libsql://` and the first path slash, or end-of-string.
+  const masked = url.replace(/libsql:\/\/[^/]+/, 'libsql://***');
   console.log(`→ Migrating ${masked}`);
 
   const client = createClient({ url, authToken });

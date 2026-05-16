@@ -1,6 +1,6 @@
-import { timingSafeEqual } from 'node:crypto';
 import type { Client } from '@libsql/client';
 import { dayBounds, yesterdayUtc } from '@/lib/dates';
+import { safeEqual } from '@/lib/timingSafeCompare';
 import { OUTCOMES, type Outcome } from '@/ingest/schema';
 
 export { yesterdayUtc } from '@/lib/dates';
@@ -121,9 +121,7 @@ export async function rollupDay(client: Client, day: string): Promise<RollupSumm
 
 function bearerMatches(provided: string | null, expected: string): boolean {
   if (!provided) return false;
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
+  return safeEqual(expected, provided);
 }
 
 export async function handleRollup(client: Client, req: Request): Promise<Response> {
