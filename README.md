@@ -1,11 +1,11 @@
 # trace-pack
 
-A minimal LLM observability dashboard for Claude-based apps. Live at **[trace.zeroindex.ai](https://trace.zeroindex.ai)**.
+A minimal LLM observability dashboard for Claude-based apps. Live at **[traces.zeroindex.ai](https://traces.zeroindex.ai)**.
 
 Companion to [`@zeroindex-ai/eval-pack`](https://github.com/zeroindex-ai/eval-pack):
 
 - `eval-pack` = pre-prod correctness (file-producing library, run in CI) — reports at [evals.zeroindex.ai](https://evals.zeroindex.ai)
-- `trace-pack` = post-prod behavior (hosted service, ingests live events) — dashboard at [trace.zeroindex.ai](https://trace.zeroindex.ai)
+- `trace-pack` = post-prod behavior (hosted service, ingests live events) — dashboard at [traces.zeroindex.ai](https://traces.zeroindex.ai)
 
 ## Status
 

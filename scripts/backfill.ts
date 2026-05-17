@@ -10,7 +10,7 @@
  *   pnpm tsx scripts/backfill.ts --file=logs.json
  *
  * Env (required):
- *   TRACE_PACK_URL    e.g. http://localhost:3000 or https://trace.zeroindex.ai
+ *   TRACE_PACK_URL    e.g. http://localhost:3000 or https://traces.zeroindex.ai
  *   TRACE_PACK_TOKEN  must match SOURCE_TOKEN_ASK_ZEROINDEX on the trace-pack side
  *
  * Env (optional):

@@ -1,6 +1,6 @@
 # trace-pack — Project Documentation
 
-> **Status: shipped v0.1** — public dashboard live at [trace.zeroindex.ai](https://trace.zeroindex.ai), serving real `ask-zeroindex` traffic via the optional dual-write in its `logAsk` path.
+> **Status: shipped v0.1** — public dashboard live at [traces.zeroindex.ai](https://traces.zeroindex.ai), serving real `ask-zeroindex` traffic via the optional dual-write in its `logAsk` path.
 
 This document captures the scope, strategic decisions, architecture, public contracts, distribution shape, and ordered work list for `trace-pack`. It exists to:
 
@@ -35,7 +35,7 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 
 | Goal | Metric | Status |
 |---|---|---|
-| Public dashboard live | `trace.zeroindex.ai` serves real `ask-zeroindex` traffic | ✅ |
+| Public dashboard live | `traces.zeroindex.ai` serves real `ask-zeroindex` traffic | ✅ |
 | Ingestion contract documented | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim | ✅ |
 | Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 (fire-and-forget POST) | ✅ |
 | Linked from the marketing site | `zeroindex.ai` Observability use-case card gains a "See live traces →" link | ✅ |
@@ -109,7 +109,7 @@ Load-bearing decisions, documented because the *why* often outlasts the *what*.
 │                                                                       │
 │   logAsk(trace)                                                       │
 │     ├── console.log(...)         ← unchanged; preserves Vercel logs   │
-│     └── POST trace.zeroindex.ai/api/ingest  (if TRACE_PACK_URL set)   │
+│     └── POST traces.zeroindex.ai/api/ingest  (if TRACE_PACK_URL set)   │
 │         Authorization: Bearer ${TRACE_PACK_TOKEN}                     │
 └──────────────────────────────────────────────────────────────────────┘
                               │
@@ -174,7 +174,7 @@ Request:
 
 ```http
 POST /api/ingest HTTP/1.1
-Host: trace.zeroindex.ai
+Host: traces.zeroindex.ai
 Content-Type: application/json
 Authorization: Bearer <per-source-token>
 
@@ -452,7 +452,7 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 
 ### v0.2 candidate work
 
-- Multi-source UI: source selector + per-source URLs (`trace.zeroindex.ai/s/<source>`)
+- Multi-source UI: source selector + per-source URLs (`traces.zeroindex.ai/s/<source>`)
 - Cost dashboard: requires consumers to emit `inputTokens` + `outputTokens` + per-model pricing table
 - Threshold alerting: webhook on `error_rate_24h > X` or `p95_total_ms > Y`
 - Live-tail view: server-sent events feeding a single tail page
@@ -475,7 +475,7 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 - **Eval reports site:** [`zeroindex-ai/evals-site`](https://github.com/zeroindex-ai/evals-site) — `evals.zeroindex.ai`
 - **Website repo:** [`zeroindex-ai/zeroindexai`](https://github.com/zeroindex-ai/zeroindexai)
 - **This repo:** [`zeroindex-ai/trace-pack`](https://github.com/zeroindex-ai/trace-pack) (planned)
-- **Live site:** `trace.zeroindex.ai` (planned)
+- **Live site:** `traces.zeroindex.ai` (planned)
 
 ---
 
