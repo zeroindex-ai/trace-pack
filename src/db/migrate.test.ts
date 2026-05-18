@@ -16,9 +16,7 @@ describe('migrate', () => {
   it('creates the events and rollup_daily tables', async () => {
     const client = freshClient();
     await migrate(client);
-    const tables = await client.execute(
-      "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-    );
+    const tables = await client.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
     const names = tables.rows.map((r) => r.name);
     expect(names).toContain('events');
     expect(names).toContain('rollup_daily');

@@ -15,10 +15,7 @@ import {
 
 const NOW = new Date('2026-05-15T12:00:00.000Z');
 
-function event(
-  ts: string,
-  overrides: Partial<IngestEvent> = {}
-): IngestEvent {
+function event(ts: string, overrides: Partial<IngestEvent> = {}): IngestEvent {
   return {
     source: 'ask-zeroindex',
     event: 'ask',

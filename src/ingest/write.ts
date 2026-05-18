@@ -4,11 +4,7 @@ import type { IngestEvent } from './schema';
 
 export type WriteResult = { written: boolean; questionHash: string };
 
-export async function insertEvent(
-  client: Client,
-  event: IngestEvent,
-  rawJson: string
-): Promise<WriteResult> {
+export async function insertEvent(client: Client, event: IngestEvent, rawJson: string): Promise<WriteResult> {
   const questionHash = createHash('sha256').update(event.question).digest('hex');
   const result = await client.execute({
     sql: `INSERT OR IGNORE INTO events (

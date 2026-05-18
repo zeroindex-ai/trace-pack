@@ -95,10 +95,7 @@ describe('handleIngest', () => {
   });
 
   it('401s on wrong bearer token', async () => {
-    const res = await handleIngest(
-      client,
-      ingestRequest(validEvent(), { auth: 'Bearer wrong-token' })
-    );
+    const res = await handleIngest(client, ingestRequest(validEvent(), { auth: 'Bearer wrong-token' }));
     expect(res.status).toBe(401);
   });
 
@@ -143,10 +140,7 @@ describe('handleIngest', () => {
   it('413s when the actual body exceeds the cap (regardless of header)', async () => {
     // Build a body larger than 8192 bytes by inflating the question field.
     const huge = validEvent({ question: 'x'.repeat(9000) });
-    const res = await handleIngest(
-      client,
-      ingestRequest(huge, { auth: `Bearer ${VALID_TOKEN}` })
-    );
+    const res = await handleIngest(client, ingestRequest(huge, { auth: `Bearer ${VALID_TOKEN}` }));
     expect(res.status).toBe(413);
     const body = await res.json();
     expect(body.error).toBe('payload_too_large');
@@ -154,10 +148,7 @@ describe('handleIngest', () => {
 
   it('stores unknown fields in raw_json via passthrough', async () => {
     const extended = { ...validEvent(), inputTokens: 1234, outputTokens: 567 };
-    const res = await handleIngest(
-      client,
-      ingestRequest(extended, { auth: `Bearer ${VALID_TOKEN}` })
-    );
+    const res = await handleIngest(client, ingestRequest(extended, { auth: `Bearer ${VALID_TOKEN}` }));
     expect(res.status).toBe(204);
 
     const rows = await client.execute('SELECT raw_json FROM events');

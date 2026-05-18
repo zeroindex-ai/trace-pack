@@ -25,7 +25,7 @@ Where `eval-pack` is a library you import, `trace-pack` is a hosted dashboard yo
 
 ### Why this project
 
-The eval methodology (`eval-pack`) tells you whether your LLM app gets answers right on a curated golden set. It says nothing about what real users actually ask, how latency behaves under real load, what fraction of requests fail in production, or which retrieved chunks dominate. Most teams glue this together from a logging vendor, a chart library, and three SQL queries — but the *interesting* metrics for a small Claude app are different from those any generic APM gives you (first-token latency, citation count distribution, retrieved-id heatmap).
+The eval methodology (`eval-pack`) tells you whether your LLM app gets answers right on a curated golden set. It says nothing about what real users actually ask, how latency behaves under real load, what fraction of requests fail in production, or which retrieved chunks dominate. Most teams glue this together from a logging vendor, a chart library, and three SQL queries — but the _interesting_ metrics for a small Claude app are different from those any generic APM gives you (first-token latency, citation count distribution, retrieved-id heatmap).
 
 - **Lifted from a real consumer.** The first consumer is [`ask-zeroindex`](https://github.com/zeroindex-ai/ask-zeroindex), which already emits the exact event shape this project ingests (see `app/api/ask` `logAsk` in that repo). v0.1 work is generalization, storage, and presentation — not greenfield instrumentation.
 - **Opinionated, not generic.** This is not an OTel collector. It's a dashboard with a fixed schema, four pages, and a small set of metrics chosen to be useful for a Claude-app author specifically.
@@ -33,14 +33,14 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 
 ### Goals & success criteria for v0.1
 
-| Goal | Metric | Status |
-|---|---|---|
-| Public dashboard live | `traces.zeroindex.ai` serves real `ask-zeroindex` traffic | ✅ |
-| Ingestion contract documented | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim | ✅ |
-| Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 (fire-and-forget POST) | ✅ |
-| Linked from the marketing site | `zeroindex.ai` Observability use-case card gains a "See live traces →" link | ✅ |
-| Owner-only admin view | `/admin` shows full traces, error feed, drill-down behind auth | ✅ |
-| Daily rollup keeps homepage cheap | Homepage SSR fetches one row per visible day, not raw events | ✅ |
+| Goal                                           | Metric                                                                            | Status |
+| ---------------------------------------------- | --------------------------------------------------------------------------------- | ------ |
+| Public dashboard live                          | `traces.zeroindex.ai` serves real `ask-zeroindex` traffic                         | ✅     |
+| Ingestion contract documented                  | `POST /api/ingest` accepts `ask-zeroindex`'s current event verbatim               | ✅     |
+| Zero perceptible latency added to the consumer | `ask-zeroindex` `logAsk` continues to complete in <1ms p99 (fire-and-forget POST) | ✅     |
+| Linked from the marketing site                 | `zeroindex.ai` Observability use-case card gains a "See live traces →" link       | ✅     |
+| Owner-only admin view                          | `/admin` shows full traces, error feed, drill-down behind auth                    | ✅     |
+| Daily rollup keeps homepage cheap              | Homepage SSR fetches one row per visible day, not raw events                      | ✅     |
 
 ### Out of scope (for v0.1)
 
@@ -58,46 +58,46 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 
 ## 2. Strategic decisions log
 
-Load-bearing decisions, documented because the *why* often outlasts the *what*.
+Load-bearing decisions, documented because the _why_ often outlasts the _what_.
 
 ### Stack picks
 
-| Decision | Choice | Reasoning |
-|---|---|---|
-| **App framework** | Next.js 16 on Vercel Pro | Consistent with `ask-zeroindex`. App Router + Server Components let the dashboard SSR every chart server-side — no client-side data fetching, no SPA-router complexity for a four-page site. |
-| **Storage** | Turso libsql | Consistent with `ask-zeroindex`. SQLite semantics with a managed hosted layer. The query shapes here (aggregate by day, percentile over a window, top-N by group) are exactly what SQLite is good at. A real time-series DB is overkill at this scale. |
-| **Charts** | Recharts | Mature, declarative, SSR-friendly. D3 would be overkill for time-series + bars + histograms; the data shapes are simple. |
-| **Validation** | Zod | Already in the stack via `ask-zeroindex` and `eval-pack`. Used at the ingest boundary and on the rollup contract. |
-| **Tests** | Vitest | Already in the stack. |
-| **Auth on `/admin`** | Basic auth via Next.js `proxy.ts` (renamed from `middleware.ts` in Next 16) with a single `ADMIN_PASSWORD` env var | Smallest viable surface for a single-owner dashboard. Swap to a real provider when multi-tenant arrives. |
-| **Package manager** | pnpm 10 | Same as the rest of the stack. |
-| **Node** | 24 LTS | Same as the rest of the stack. |
-| **License** | MIT | Matches `eval-pack` and `mcp-pack`. |
+| Decision             | Choice                                                                                                             | Reasoning                                                                                                                                                                                                                                              |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **App framework**    | Next.js 16 on Vercel Pro                                                                                           | Consistent with `ask-zeroindex`. App Router + Server Components let the dashboard SSR every chart server-side — no client-side data fetching, no SPA-router complexity for a four-page site.                                                           |
+| **Storage**          | Turso libsql                                                                                                       | Consistent with `ask-zeroindex`. SQLite semantics with a managed hosted layer. The query shapes here (aggregate by day, percentile over a window, top-N by group) are exactly what SQLite is good at. A real time-series DB is overkill at this scale. |
+| **Charts**           | Recharts                                                                                                           | Mature, declarative, SSR-friendly. D3 would be overkill for time-series + bars + histograms; the data shapes are simple.                                                                                                                               |
+| **Validation**       | Zod                                                                                                                | Already in the stack via `ask-zeroindex` and `eval-pack`. Used at the ingest boundary and on the rollup contract.                                                                                                                                      |
+| **Tests**            | Vitest                                                                                                             | Already in the stack.                                                                                                                                                                                                                                  |
+| **Auth on `/admin`** | Basic auth via Next.js `proxy.ts` (renamed from `middleware.ts` in Next 16) with a single `ADMIN_PASSWORD` env var | Smallest viable surface for a single-owner dashboard. Swap to a real provider when multi-tenant arrives.                                                                                                                                               |
+| **Package manager**  | pnpm 10                                                                                                            | Same as the rest of the stack.                                                                                                                                                                                                                         |
+| **Node**             | 24 LTS                                                                                                             | Same as the rest of the stack.                                                                                                                                                                                                                         |
+| **License**          | MIT                                                                                                                | Matches `eval-pack` and `mcp-pack`.                                                                                                                                                                                                                    |
 
 ### Things deliberately NOT chosen
 
-| Avoided | Why |
-|---|---|
-| **Vercel Log Drains as the ingestion path** | Log drains are real-time and require zero consumer change, but: (1) they deliver *all* function logs and force `trace-pack` to parse a noisy unstructured stream filtering on `event=ask`; (2) they tie the contract to Vercel-hosted consumers; (3) they make multi-source coordination painful (one drain per source). Direct POST is a 5-line consumer change, keeps stdout intact for Vercel-side diagnostics, and gives `trace-pack` a contract it controls. |
-| **ClickHouse / Tinybird / a real time-series DB** | At `ask-zeroindex`'s current traffic (single-digit requests per minute peak), SQLite is dramatically over-resourced. Turso scales sideways far longer than this project will need. The day a consumer's volume justifies ClickHouse is the day we're long past v0.1. |
-| **Full OpenTelemetry** | OTel pays back when you have multiple services and need distributed propagation. A single Next.js app emitting one event per request gets nothing from spans/baggage. Adopt when an actual consumer has the shape. |
-| **A client-side SPA dashboard** | Server Components SSR the charts. No `useEffect`-to-fetch, no loading skeletons, no client/server data drift. A dashboard whose data updates on page load is fast enough. |
-| **A "logs" view in addition to the events table** | The events table *is* the logs view. Splitting them would be ceremony. |
-| **Per-event public drill-down** | User-typed questions are the only field that *could* leak something. Aggregates are safe to publish; raw events stay behind auth. |
-| **Server-side question redaction in v0.1** | The current consumer (`ask-zeroindex`) answers Q&A about ZeroIndex itself — low PII risk. An optional `redactQuestion` hook is reserved in the schema; ships empty. |
+| Avoided                                           | Why                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Vercel Log Drains as the ingestion path**       | Log drains are real-time and require zero consumer change, but: (1) they deliver _all_ function logs and force `trace-pack` to parse a noisy unstructured stream filtering on `event=ask`; (2) they tie the contract to Vercel-hosted consumers; (3) they make multi-source coordination painful (one drain per source). Direct POST is a 5-line consumer change, keeps stdout intact for Vercel-side diagnostics, and gives `trace-pack` a contract it controls. |
+| **ClickHouse / Tinybird / a real time-series DB** | At `ask-zeroindex`'s current traffic (single-digit requests per minute peak), SQLite is dramatically over-resourced. Turso scales sideways far longer than this project will need. The day a consumer's volume justifies ClickHouse is the day we're long past v0.1.                                                                                                                                                                                              |
+| **Full OpenTelemetry**                            | OTel pays back when you have multiple services and need distributed propagation. A single Next.js app emitting one event per request gets nothing from spans/baggage. Adopt when an actual consumer has the shape.                                                                                                                                                                                                                                                |
+| **A client-side SPA dashboard**                   | Server Components SSR the charts. No `useEffect`-to-fetch, no loading skeletons, no client/server data drift. A dashboard whose data updates on page load is fast enough.                                                                                                                                                                                                                                                                                         |
+| **A "logs" view in addition to the events table** | The events table _is_ the logs view. Splitting them would be ceremony.                                                                                                                                                                                                                                                                                                                                                                                            |
+| **Per-event public drill-down**                   | User-typed questions are the only field that _could_ leak something. Aggregates are safe to publish; raw events stay behind auth.                                                                                                                                                                                                                                                                                                                                 |
+| **Server-side question redaction in v0.1**        | The current consumer (`ask-zeroindex`) answers Q&A about ZeroIndex itself — low PII risk. An optional `redactQuestion` hook is reserved in the schema; ships empty.                                                                                                                                                                                                                                                                                               |
 
 ### Architecture decisions
 
-| Decision | Choice | Reasoning |
-|---|---|---|
-| **Ingestion contract** | `POST /api/ingest` with bearer token; one event per request | Consumer-friendly (5-line change), auth-friendly (per-source token), evolvable (additive schema). |
-| **Schema evolution** | Store full payload as `raw_json`; promote known fields to typed columns | New fields from consumers never get rejected. Typed columns can be added in subsequent migrations and back-filled from `raw_json`. |
-| **Multi-tenancy** | `source` column on every row, indexed with `ts` | v0.1 ships with one source. Adding a second is a token + a UI selector — no schema change. |
-| **Storage of question text** | Stored on the server, never rendered on the public homepage, rendered on the auth-gated admin view | The privacy-sensitive content stays behind auth; the public face is aggregates only. |
-| **Aggregation strategy** | Daily rollup table refreshed by Vercel Cron at 00:15 UTC + on-the-fly aggregation for "today" | Homepage SSR reads one row per visible day from `rollup_daily` + a single aggregation query for the in-flight day. Avoids percentile-over-30-days queries on every page load. |
-| **Percentile computation** | JS percentile computation over rows pulled for the day window — simpler than SQLite's lack of native percentile UDF, fine at v0.1 traffic levels. | Honest p50/p95/p99 without external tools. At Turso's scale, fine. |
-| **Idempotency** | `(source, ts, question_hash)` natural key with `INSERT OR IGNORE` | Duplicate replays from a consumer retry don't create double-count. Not strict idempotency — collisions are rare and benign. |
-| **Backfill path** | One-shot script reads `vercel logs --json`, filters `event=ask`, POSTs to `/api/ingest` | The current consumer's history lives in Vercel logs. Backfill makes the dashboard non-empty on day one. |
+| Decision                     | Choice                                                                                                                                            | Reasoning                                                                                                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Ingestion contract**       | `POST /api/ingest` with bearer token; one event per request                                                                                       | Consumer-friendly (5-line change), auth-friendly (per-source token), evolvable (additive schema).                                                                             |
+| **Schema evolution**         | Store full payload as `raw_json`; promote known fields to typed columns                                                                           | New fields from consumers never get rejected. Typed columns can be added in subsequent migrations and back-filled from `raw_json`.                                            |
+| **Multi-tenancy**            | `source` column on every row, indexed with `ts`                                                                                                   | v0.1 ships with one source. Adding a second is a token + a UI selector — no schema change.                                                                                    |
+| **Storage of question text** | Stored on the server, never rendered on the public homepage, rendered on the auth-gated admin view                                                | The privacy-sensitive content stays behind auth; the public face is aggregates only.                                                                                          |
+| **Aggregation strategy**     | Daily rollup table refreshed by Vercel Cron at 00:15 UTC + on-the-fly aggregation for "today"                                                     | Homepage SSR reads one row per visible day from `rollup_daily` + a single aggregation query for the in-flight day. Avoids percentile-over-30-days queries on every page load. |
+| **Percentile computation**   | JS percentile computation over rows pulled for the day window — simpler than SQLite's lack of native percentile UDF, fine at v0.1 traffic levels. | Honest p50/p95/p99 without external tools. At Turso's scale, fine.                                                                                                            |
+| **Idempotency**              | `(source, ts, question_hash)` natural key with `INSERT OR IGNORE`                                                                                 | Duplicate replays from a consumer retry don't create double-count. Not strict idempotency — collisions are rare and benign.                                                   |
+| **Backfill path**            | One-shot script reads `vercel logs --json`, filters `event=ask`, POSTs to `/api/ingest`                                                           | The current consumer's history lives in Vercel logs. Backfill makes the dashboard non-empty on day one.                                                                       |
 
 ---
 
@@ -199,20 +199,22 @@ Response: `204 No Content` on success, `400` on schema violation, `401` on bad/m
 Zod schema (informal):
 
 ```ts
-export const IngestEvent = z.object({
-  source: z.string().min(1).max(64),
-  event: z.literal('ask'),                     // v0.1: only 'ask'
-  ts: z.string().datetime(),
-  model: z.string().min(1),
-  question: z.string().max(2000),
-  outcome: z.enum(['ok', 'retrieval_failed', 'stream_failed', 'aborted']),
-  retrievedIds: z.array(z.number().int()).default([]),
-  citationCount: z.number().int().min(0),
-  retrievalMs: z.number().int().min(0),
-  firstTokenMs: z.number().int().nullable(),
-  totalMs: z.number().int().min(0),
-  errorMessage: z.string().nullable().optional(),
-}).passthrough();                              // unknown fields → raw_json
+export const IngestEvent = z
+  .object({
+    source: z.string().min(1).max(64),
+    event: z.literal('ask'), // v0.1: only 'ask'
+    ts: z.string().datetime(),
+    model: z.string().min(1),
+    question: z.string().max(2000),
+    outcome: z.enum(['ok', 'retrieval_failed', 'stream_failed', 'aborted']),
+    retrievedIds: z.array(z.number().int()).default([]),
+    citationCount: z.number().int().min(0),
+    retrievalMs: z.number().int().min(0),
+    firstTokenMs: z.number().int().nullable(),
+    totalMs: z.number().int().min(0),
+    errorMessage: z.string().nullable().optional(),
+  })
+  .passthrough(); // unknown fields → raw_json
 ```
 
 The `passthrough()` is load-bearing: it's the forward-compatibility guarantee. Consumers can add fields without coordinating with `trace-pack`.
@@ -374,7 +376,7 @@ v0.1 work-list. Status markers reflect current state.
 8. ✅ **Public `/` page.** SSR 5 charts with `force-dynamic`; reads `rollup_daily` for past days, computes today live from `events`.
 9. ✅ **`/admin` page.** `proxy.ts` basic-auth gate (Next 16 rename of `middleware.ts`); events table with pagination + outcome filter, error feed, question clusters.
 10. ✅ **`/admin/[id]` page.** Single-event drill-down with typed-fields KV list and pretty-printed `raw_json`. Prev/next neighbors via direct ts+source lookup.
-11a. ✅ **Apply zeroindex.ai design language.** Tailwind v4, full STYLE_GUIDE palette on `:root` (+ dashboard-only `--warn`/`--error` for outcome semantics), Tier B header matching `evals-site`, canonical 5-file favicon set.
+    11a. ✅ **Apply zeroindex.ai design language.** Tailwind v4, full STYLE_GUIDE palette on `:root` (+ dashboard-only `--warn`/`--error` for outcome semantics), Tier B header matching `evals-site`, canonical 5-file favicon set.
 11. ✅ **Custom domain.** Cloudflare DNS A record → `76.76.21.21`, gray-cloud; SSL auto-issued.
 12. ✅ **Link from `zeroindex.ai`.** Observability use-case card gains a "See live traces →" link, mirroring the existing "See live evals →" pattern on the Truth principle card.
 13. ✅ **Top-level README + Q&A snippets.** README reflects shipped state with links to live site and companion `eval-pack`.
@@ -406,13 +408,13 @@ curl -X POST http://localhost:3000/api/ingest \
 
 Required env vars (production):
 
-| Name | Purpose |
-|---|---|
-| `TURSO_DATABASE_URL` | libsql connection string |
-| `TURSO_AUTH_TOKEN` | libsql auth |
+| Name                         | Purpose                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `TURSO_DATABASE_URL`         | libsql connection string                          |
+| `TURSO_AUTH_TOKEN`           | libsql auth                                       |
 | `SOURCE_TOKEN_ASK_ZEROINDEX` | bearer token expected from `ask-zeroindex` ingest |
-| `ADMIN_PASSWORD` | basic-auth password for `/admin/*` |
-| `CRON_SECRET` | shared secret for `/api/rollup` |
+| `ADMIN_PASSWORD`             | basic-auth password for `/admin/*`                |
+| `CRON_SECRET`                | shared secret for `/api/rollup`                   |
 
 Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the value to that consumer. No code change.
 
@@ -426,16 +428,16 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 
 ## 10. Decision log (running)
 
-| Date | Decision | Why |
-|---|---|---|
-| 2026-05-15 | Direct POST ingestion, not Vercel Log Drains | Contract clarity, consumer portability, no log-stream parsing. |
-| 2026-05-15 | Turso libsql, not a real time-series DB | At current consumer scale, SQLite is dramatically over-resourced. |
-| 2026-05-15 | Single-tenant UI, multi-tenant data model | Don't pay UI complexity for a second consumer that doesn't exist yet; don't pay schema migration when it does. |
-| 2026-05-15 | Question text stored, never rendered publicly | Aggregates are safe to publish; raw inputs stay behind auth. |
-| 2026-05-15 | SSR everything, no client-side data fetches | Four-page dashboard, simple queries. Pay no SPA tax. |
-| 2026-05-15 | Basic auth on `/admin` for v0.1 | Single-owner dashboard. Real auth provider waits for multi-user. |
-| 2026-05-15 | Daily rollup + on-the-fly today aggregation | Cheap homepage queries without losing same-day visibility. |
-| 2026-05-16 | `favicon.ico` lives at `app/favicon.ico`, not `public/` | Next 16 app-router intercepts `/favicon.ico` and 404s when the file is only in `public/`. App auto-injects the corresponding `<link>` tag; keep manual `<link>` tags only for the sized PNGs + SVG + apple-touch-icon which remain in `public/`. |
+| Date       | Decision                                                   | Why                                                                                                                                                                                                                                                                                               |
+| ---------- | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-15 | Direct POST ingestion, not Vercel Log Drains               | Contract clarity, consumer portability, no log-stream parsing.                                                                                                                                                                                                                                    |
+| 2026-05-15 | Turso libsql, not a real time-series DB                    | At current consumer scale, SQLite is dramatically over-resourced.                                                                                                                                                                                                                                 |
+| 2026-05-15 | Single-tenant UI, multi-tenant data model                  | Don't pay UI complexity for a second consumer that doesn't exist yet; don't pay schema migration when it does.                                                                                                                                                                                    |
+| 2026-05-15 | Question text stored, never rendered publicly              | Aggregates are safe to publish; raw inputs stay behind auth.                                                                                                                                                                                                                                      |
+| 2026-05-15 | SSR everything, no client-side data fetches                | Four-page dashboard, simple queries. Pay no SPA tax.                                                                                                                                                                                                                                              |
+| 2026-05-15 | Basic auth on `/admin` for v0.1                            | Single-owner dashboard. Real auth provider waits for multi-user.                                                                                                                                                                                                                                  |
+| 2026-05-15 | Daily rollup + on-the-fly today aggregation                | Cheap homepage queries without losing same-day visibility.                                                                                                                                                                                                                                        |
+| 2026-05-16 | `favicon.ico` lives at `app/favicon.ico`, not `public/`    | Next 16 app-router intercepts `/favicon.ico` and 404s when the file is only in `public/`. App auto-injects the corresponding `<link>` tag; keep manual `<link>` tags only for the sized PNGs + SVG + apple-touch-icon which remain in `public/`.                                                  |
 | 2026-05-16 | TURSO creds non-Sensitive on Vercel; tokens stay Sensitive | Vercel "Sensitive" env vars are not pullable via `vercel env pull`; running one-off migrations against prod requires the values reachable from the operator's terminal. Compromise: Turso URL+token are also stored in 1Password, the operator pulls via `op read` rather than `vercel env pull`. |
 
 ---
@@ -479,4 +481,4 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 
 ---
 
-*This document is a living artifact. Update it when scope, contracts, or decisions change materially.*
+_This document is a living artifact. Update it when scope, contracts, or decisions change materially._

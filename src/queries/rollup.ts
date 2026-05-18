@@ -42,11 +42,7 @@ async function sourcesForDay(client: Client, day: string): Promise<string[]> {
   return res.rows.map((r) => String(r.source));
 }
 
-async function aggregateSource(
-  client: Client,
-  source: string,
-  day: string
-): Promise<RollupSummary | null> {
+async function aggregateSource(client: Client, source: string, day: string): Promise<RollupSummary | null> {
   const { startIso, endIso } = dayBounds(day);
   const res = await client.execute({
     sql: `SELECT outcome, total_ms, first_token_ms, citation_count
@@ -98,9 +94,19 @@ async function writeRollup(client: Client, r: RollupSummary): Promise<void> {
       avg_citations
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
-      r.source, r.day, r.events, r.ok, r.retrieval_failed, r.stream_failed, r.aborted,
-      r.p50_total_ms, r.p95_total_ms, r.p99_total_ms,
-      r.p50_first_token_ms, r.p95_first_token_ms, r.p99_first_token_ms,
+      r.source,
+      r.day,
+      r.events,
+      r.ok,
+      r.retrieval_failed,
+      r.stream_failed,
+      r.aborted,
+      r.p50_total_ms,
+      r.p95_total_ms,
+      r.p99_total_ms,
+      r.p50_first_token_ms,
+      r.p95_first_token_ms,
+      r.p99_first_token_ms,
       r.avg_citations,
     ],
   });

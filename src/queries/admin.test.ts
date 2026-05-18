@@ -3,13 +3,7 @@ import { createClient, type Client } from '@libsql/client';
 import { migrate } from '../db/migrate';
 import { insertEvent } from '../ingest/write';
 import type { IngestEvent } from '../ingest/schema';
-import {
-  errorEvents,
-  eventById,
-  neighbors,
-  questionClusters,
-  recentEvents,
-} from './admin';
+import { errorEvents, eventById, neighbors, questionClusters, recentEvents } from './admin';
 
 const NOW = new Date('2026-05-15T12:00:00.000Z');
 
@@ -139,10 +133,7 @@ describe('questionClusters', () => {
   });
 
   it('respects the time window', async () => {
-    await seed(client, [
-      event('2026-03-01T00:00:00.000Z'),
-      event('2026-05-14T00:00:00.000Z'),
-    ]);
+    await seed(client, [event('2026-03-01T00:00:00.000Z'), event('2026-05-14T00:00:00.000Z')]);
     const rows = await questionClusters(client, 'ask-zeroindex', 7, 10, NOW);
     expect(rows).toHaveLength(1);
   });
@@ -187,10 +178,7 @@ describe('neighbors', () => {
   });
 
   it('returns null prev for the oldest event', async () => {
-    await seed(client, [
-      event('2026-05-14T01:00:00.000Z'),
-      event('2026-05-14T02:00:00.000Z'),
-    ]);
+    await seed(client, [event('2026-05-14T01:00:00.000Z'), event('2026-05-14T02:00:00.000Z')]);
     const result = await neighbors(client, 'ask-zeroindex', '2026-05-14T01:00:00.000Z');
     expect(result.prev).toBeNull();
     expect(result.next?.id).toBe(2);
@@ -198,8 +186,9 @@ describe('neighbors', () => {
 
   it('returns both null when no neighbors exist on either side', async () => {
     await seed(client, [event('2026-05-14T01:00:00.000Z')]);
-    expect(
-      await neighbors(client, 'ask-zeroindex', '2026-05-14T01:00:00.000Z')
-    ).toEqual({ prev: null, next: null });
+    expect(await neighbors(client, 'ask-zeroindex', '2026-05-14T01:00:00.000Z')).toEqual({
+      prev: null,
+      next: null,
+    });
   });
 });

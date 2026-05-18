@@ -81,16 +81,14 @@ export default async function HomePage() {
     <>
       <section className="pt-10 pb-8">
         <div className="label mb-3">Traces</div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
-          Live observability.
-        </h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Live observability.</h1>
         <p className="mt-4 muted text-base leading-relaxed max-w-5xl">
-          Post-prod telemetry from{' '}
-          <code className="chip">{SOURCE}</code>, ingested as it happens. Companion to{' '}
+          Post-prod telemetry from <code className="chip">{SOURCE}</code>, ingested as it happens. Companion
+          to{' '}
           <a href="https://evals.zeroindex.ai" className="inline-link">
             evals.zeroindex.ai
-          </a>
-          {' '}— evals catch regressions before deploy; traces show what actually happens after.
+          </a>{' '}
+          — evals catch regressions before deploy; traces show what actually happens after.
         </p>
       </section>
 
@@ -173,9 +171,7 @@ export default async function HomePage() {
           </div>
         )}
 
-        <p className="muted-2 mono text-xs mt-10">
-          Aggregates only — per-event detail is admin-gated.
-        </p>
+        <p className="muted-2 mono text-xs mt-10">Aggregates only — per-event detail is admin-gated.</p>
       </section>
     </>
   );

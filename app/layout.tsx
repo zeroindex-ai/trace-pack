@@ -25,15 +25,35 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="apple-touch-icon" href="/favicon-180x180.png" />
       </head>
       <body>
-        <a href="#main-content" className="skip-link">Skip to content</a>
+        <a href="#main-content" className="skip-link">
+          Skip to content
+        </a>
 
         <header id="siteHeader" className="site-header sticky top-0 z-30">
           <div className="max-w-6xl mx-auto px-6 md:px-10 py-5 flex items-center justify-between">
             <a href="https://zeroindex.ai" className="brand-link" aria-label="ZeroIndex home">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="4 0 24 32" width="27" height="36" aria-hidden="true">
-                <path d="M185 -110V830H465V715H310V5H465V-110Z" fill="#3f3f46" transform="translate(1 23.2) scale(0.02 -0.02)" />
-                <path d="M300 -10Q229 -10 177.0 17.0Q125 44 96.5 93.0Q68 142 68 208V522Q68 588 96.5 637.0Q125 686 177.0 713.0Q229 740 300 740Q371 740 423.0 713.0Q475 686 503.5 637.0Q532 588 532 522V208Q532 142 503.5 93.0Q475 44 423.0 17.0Q371 -10 300 -10ZM186 522V288L410 554Q401 590 372.0 611.0Q343 632 300 632Q247 632 216.5 602.0Q186 572 186 522ZM300 98Q352 98 383.0 128.0Q414 158 414 208V442L190 176Q199 140 228.0 119.0Q257 98 300 98Z" fill="#7c3aed" transform="translate(10 23.2) scale(0.02 -0.02)" />
-                <path d="M135 -110V5H290V715H135V830H415V-110Z" fill="#3f3f46" transform="translate(19 23.2) scale(0.02 -0.02)" />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="4 0 24 32"
+                width="27"
+                height="36"
+                aria-hidden="true"
+              >
+                <path
+                  d="M185 -110V830H465V715H310V5H465V-110Z"
+                  fill="#3f3f46"
+                  transform="translate(1 23.2) scale(0.02 -0.02)"
+                />
+                <path
+                  d="M300 -10Q229 -10 177.0 17.0Q125 44 96.5 93.0Q68 142 68 208V522Q68 588 96.5 637.0Q125 686 177.0 713.0Q229 740 300 740Q371 740 423.0 713.0Q475 686 503.5 637.0Q532 588 532 522V208Q532 142 503.5 93.0Q475 44 423.0 17.0Q371 -10 300 -10ZM186 522V288L410 554Q401 590 372.0 611.0Q343 632 300 632Q247 632 216.5 602.0Q186 572 186 522ZM300 98Q352 98 383.0 128.0Q414 158 414 208V442L190 176Q199 140 228.0 119.0Q257 98 300 98Z"
+                  fill="#7c3aed"
+                  transform="translate(10 23.2) scale(0.02 -0.02)"
+                />
+                <path
+                  d="M135 -110V5H290V715H135V830H415V-110Z"
+                  fill="#3f3f46"
+                  transform="translate(19 23.2) scale(0.02 -0.02)"
+                />
               </svg>
               <span className="brand-name">ZeroIndex</span>
             </a>
@@ -50,9 +70,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="muted flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
               <div className="mono">&copy; 2026 ZeroIndex LLC &middot; Pennsylvania</div>
               <div className="flex items-center gap-6">
-                <a className="subtle" href="https://github.com/zeroindex-ai/trace-pack">Source</a>
-                <a className="subtle" href="https://github.com/zeroindex-ai/eval-pack">eval-pack</a>
-                <a className="subtle" href="https://zeroindex.ai">zeroindex.ai</a>
+                <a className="subtle" href="https://github.com/zeroindex-ai/trace-pack">
+                  Source
+                </a>
+                <a className="subtle" href="https://github.com/zeroindex-ai/eval-pack">
+                  eval-pack
+                </a>
+                <a className="subtle" href="https://zeroindex.ai">
+                  zeroindex.ai
+                </a>
               </div>
             </div>
           </footer>

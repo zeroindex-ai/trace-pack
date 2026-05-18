@@ -17,11 +17,7 @@ function prettyJson(raw: string): string {
   }
 }
 
-export default async function EventDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default async function EventDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const eventId = Number.parseInt(id, 10);
   if (!Number.isFinite(eventId)) notFound();
@@ -35,14 +31,16 @@ export default async function EventDetailPage({
     <>
       <section className="pt-10 pb-6">
         <div className="label mb-3">
-          <Link href="/admin" className="subtle">← Admin</Link>
+          <Link href="/admin" className="subtle">
+            ← Admin
+          </Link>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           Event <span className="muted-2">#{event.id}</span>
         </h1>
         <p className="mt-4 muted text-base leading-relaxed">
-          <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span>{' '}
-          · <code className="chip">{event.source}</code> · {fmtTs(event.ts)}
+          <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span> ·{' '}
+          <code className="chip">{event.source}</code> · {fmtTs(event.ts)}
         </p>
 
         <div className="pagination mt-6">
@@ -65,19 +63,22 @@ export default async function EventDetailPage({
         <div className="label mb-4">00 / Typed fields</div>
         <div className="card">
           <dl className="kv-list">
-            <dt>id</dt>             <dd className="mono">{event.id}</dd>
-            <dt>source</dt>         <dd className="mono">{event.source}</dd>
-            <dt>ts</dt>             <dd className="mono">{event.ts}</dd>
-            <dt>model</dt>          <dd className="mono">{event.model ?? '—'}</dd>
-            <dt>outcome</dt>        <dd><span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span></dd>
-            <dt>question_hash</dt>  <dd className="mono">{event.question_hash}</dd>
-            <dt>question</dt>       <dd>{event.question ?? '—'}</dd>
-            <dt>retrieved_ids</dt>  <dd className="mono">{event.retrieved_ids ?? '—'}</dd>
+            <dt>id</dt> <dd className="mono">{event.id}</dd>
+            <dt>source</dt> <dd className="mono">{event.source}</dd>
+            <dt>ts</dt> <dd className="mono">{event.ts}</dd>
+            <dt>model</dt> <dd className="mono">{event.model ?? '—'}</dd>
+            <dt>outcome</dt>{' '}
+            <dd>
+              <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span>
+            </dd>
+            <dt>question_hash</dt> <dd className="mono">{event.question_hash}</dd>
+            <dt>question</dt> <dd>{event.question ?? '—'}</dd>
+            <dt>retrieved_ids</dt> <dd className="mono">{event.retrieved_ids ?? '—'}</dd>
             <dt>citation_count</dt> <dd className="mono">{event.citation_count ?? '—'}</dd>
-            <dt>retrieval_ms</dt>   <dd className="mono">{fmtMs(event.retrieval_ms)}</dd>
+            <dt>retrieval_ms</dt> <dd className="mono">{fmtMs(event.retrieval_ms)}</dd>
             <dt>first_token_ms</dt> <dd className="mono">{fmtMs(event.first_token_ms)}</dd>
-            <dt>total_ms</dt>       <dd className="mono">{fmtMs(event.total_ms)}</dd>
-            <dt>error_message</dt>  <dd>{event.error_message ?? '—'}</dd>
+            <dt>total_ms</dt> <dd className="mono">{fmtMs(event.total_ms)}</dd>
+            <dt>error_message</dt> <dd>{event.error_message ?? '—'}</dd>
           </dl>
         </div>
       </section>

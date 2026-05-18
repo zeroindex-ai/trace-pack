@@ -69,11 +69,7 @@ export async function recentEvents(
   return { rows: res.rows.map(rowToEvent), total };
 }
 
-export async function errorEvents(
-  client: Client,
-  source: string,
-  limit: number
-): Promise<EventRow[]> {
+export async function errorEvents(client: Client, source: string, limit: number): Promise<EventRow[]> {
   const res = await client.execute({
     sql: `SELECT ${SELECT_COLUMNS} FROM events
           WHERE source = ? AND outcome != 'ok'
@@ -90,9 +86,7 @@ export async function questionClusters(
   limit: number,
   now: Date = new Date()
 ): Promise<ClusterRow[]> {
-  const start = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days)
-  );
+  const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days));
   const startIso = start.toISOString();
 
   const res = await client.execute({

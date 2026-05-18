@@ -36,9 +36,7 @@ async function main() {
   const applied = await migrate(client);
   console.log(`Applied: ${applied.join(', ')}`);
 
-  const tables = await client.execute(
-    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-  );
+  const tables = await client.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
   console.log(`Tables: ${tables.rows.map((r) => r.name).join(', ')}`);
 }
 

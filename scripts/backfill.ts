@@ -20,11 +20,7 @@
 
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
-import {
-  extractAskTrace,
-  toIngestEvent,
-  type IngestEventBody,
-} from '../src/lib/backfill-parse';
+import { extractAskTrace, toIngestEvent, type IngestEventBody } from '../src/lib/backfill-parse';
 
 type Stats = { lines: number; skipped: number; posted: number; errors: number };
 
@@ -70,9 +66,7 @@ async function main() {
   const stats: Stats = { lines: 0, skipped: 0, posted: 0, errors: 0 };
   const inFlight = new Set<Promise<unknown>>();
 
-  console.log(
-    `→ Backfilling to ${ingestUrl} (source=${defaultSource}, concurrency=${concurrency})`
-  );
+  console.log(`→ Backfilling to ${ingestUrl} (source=${defaultSource}, concurrency=${concurrency})`);
   if (filePath) console.log(`  reading from ${filePath}`);
   else console.log('  reading from stdin');
 
@@ -95,9 +89,7 @@ async function main() {
       })
       .catch((err) => {
         stats.errors++;
-        console.warn(
-          `  POST failed for ts=${event.ts}: ${err instanceof Error ? err.message : String(err)}`
-        );
+        console.warn(`  POST failed for ts=${event.ts}: ${err instanceof Error ? err.message : String(err)}`);
       });
 
     inFlight.add(task);

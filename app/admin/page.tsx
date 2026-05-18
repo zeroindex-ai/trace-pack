@@ -3,13 +3,7 @@ import Link from 'next/link';
 import { db } from '@/db/client';
 import { OUTCOMES } from '@/ingest/schema';
 import { fmtHash, fmtMs, fmtTs } from '@/lib/format';
-import {
-  errorEvents,
-  questionClusters,
-  recentEvents,
-  type EventRow,
-  type ClusterRow,
-} from '@/queries/admin';
+import { errorEvents, questionClusters, recentEvents, type EventRow, type ClusterRow } from '@/queries/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +29,9 @@ function EventTableRow({ row }: { row: EventRow }) {
   return (
     <tr>
       <td className="ts">
-        <Link href={`/admin/${row.id}`} className="row-link">{fmtTs(row.ts)}</Link>
+        <Link href={`/admin/${row.id}`} className="row-link">
+          {fmtTs(row.ts)}
+        </Link>
       </td>
       <td>
         <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
@@ -75,7 +71,10 @@ export default async function AdminPage({
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Events.</h1>
         <p className="mt-4 muted text-base leading-relaxed max-w-5xl">
           Per-event detail for <code className="chip">{SOURCE}</code>. Public dashboard at{' '}
-          <Link href="/" className="inline-link">/</Link> shows aggregates only.
+          <Link href="/" className="inline-link">
+            /
+          </Link>{' '}
+          shows aggregates only.
         </p>
       </section>
 
@@ -84,15 +83,20 @@ export default async function AdminPage({
       <section className="pt-10 pb-8">
         <div className="label mb-2">00 / Recent events</div>
         <p className="muted text-sm mb-4">
-          Newest first. {recent.total.toLocaleString()} total{outcome !== 'all' && ` matching outcome=${outcome}`}.
+          Newest first. {recent.total.toLocaleString()} total
+          {outcome !== 'all' && ` matching outcome=${outcome}`}.
         </p>
 
         <div className="filter-strip">
           {OUTCOME_FILTERS.map((o) =>
             o === outcome ? (
-              <span key={o} className="current">{o}</span>
+              <span key={o} className="current">
+                {o}
+              </span>
             ) : (
-              <Link key={o} href={buildHref(1, o)}>{o}</Link>
+              <Link key={o} href={buildHref(1, o)}>
+                {o}
+              </Link>
             )
           )}
         </div>
@@ -127,7 +131,9 @@ export default async function AdminPage({
           ) : (
             <span className="disabled">← Prev</span>
           )}
-          <span>Page {pageNum} of {totalPages}</span>
+          <span>
+            Page {pageNum} of {totalPages}
+          </span>
           {pageNum < totalPages ? (
             <Link href={buildHref(pageNum + 1, outcome)}>Next →</Link>
           ) : (
@@ -160,7 +166,9 @@ export default async function AdminPage({
                 {errs.map((row) => (
                   <tr key={row.id}>
                     <td className="ts">
-                      <Link href={`/admin/${row.id}`} className="row-link">{fmtTs(row.ts)}</Link>
+                      <Link href={`/admin/${row.id}`} className="row-link">
+                        {fmtTs(row.ts)}
+                      </Link>
                     </td>
                     <td>
                       <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>

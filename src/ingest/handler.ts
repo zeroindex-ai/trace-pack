@@ -36,10 +36,7 @@ export async function handleIngest(client: Client, req: Request): Promise<Respon
 
   const parsed = IngestEvent.safeParse(body);
   if (!parsed.success) {
-    return Response.json(
-      { error: 'invalid_body', issues: parsed.error.issues },
-      { status: 400 }
-    );
+    return Response.json({ error: 'invalid_body', issues: parsed.error.issues }, { status: 400 });
   }
 
   const auth = req.headers.get('authorization');

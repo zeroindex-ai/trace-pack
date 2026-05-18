@@ -105,13 +105,8 @@ const VALID_OUTCOMES = new Set(['ok', 'retrieval_failed', 'stream_failed', 'abor
  * are missing or invalid. Defaults `source` to `defaultSource` when absent
  * (pre-patch ask-zeroindex emissions didn't include `source`).
  */
-export function toIngestEvent(
-  trace: AskTraceRaw,
-  defaultSource: string
-): IngestEventBody | null {
-  const source = typeof trace.source === 'string' && trace.source.length > 0
-    ? trace.source
-    : defaultSource;
+export function toIngestEvent(trace: AskTraceRaw, defaultSource: string): IngestEventBody | null {
+  const source = typeof trace.source === 'string' && trace.source.length > 0 ? trace.source : defaultSource;
 
   const ts = typeof trace.ts === 'string' ? trace.ts : null;
   const model = typeof trace.model === 'string' ? trace.model : null;
