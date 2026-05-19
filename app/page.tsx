@@ -92,9 +92,7 @@ export default async function HomePage() {
         </p>
       </section>
 
-      <div className="grad-divider"></div>
-
-      <section className="pt-10 pb-24">
+      <section className="pt-2 pb-24">
         <div className="label mb-6">Last {WINDOW_DAYS} days</div>
 
         {error && (
