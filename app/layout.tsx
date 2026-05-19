@@ -57,7 +57,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               </svg>
               <span className="brand-name">ZeroIndex</span>
             </a>
-            <a href="https://zeroindex.ai" className="text-sm muted hover:opacity-80 transition-opacity">
+            <a
+              href="https://zeroindex.ai"
+              className="text-sm muted inline-link hover:opacity-80 transition-opacity"
+            >
               &larr; zeroindex.ai
             </a>
           </div>
