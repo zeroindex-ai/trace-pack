@@ -28,11 +28,12 @@ function buildHref(page: number, outcome: OutcomeFilter): string {
 function EventTableRow({ row }: { row: EventRow }) {
   return (
     <tr>
-      <td className="ts">
+      <td className="num-cell">
         <Link href={`/admin/${row.id}`} className="row-link">
-          {fmtTs(row.ts)}
+          #{row.id}
         </Link>
       </td>
+      <td className="ts">{fmtTs(row.ts)}</td>
       <td>
         <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
       </td>
@@ -106,6 +107,7 @@ export default async function AdminPage({
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Timestamp</th>
                   <th>Outcome</th>
                   <th>Total</th>
@@ -154,6 +156,7 @@ export default async function AdminPage({
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th>ID</th>
                   <th>Timestamp</th>
                   <th>Outcome</th>
                   <th>Error</th>
@@ -163,11 +166,12 @@ export default async function AdminPage({
               <tbody>
                 {errs.map((row) => (
                   <tr key={row.id}>
-                    <td className="ts">
+                    <td className="num-cell">
                       <Link href={`/admin/${row.id}`} className="row-link">
-                        {fmtTs(row.ts)}
+                        #{row.id}
                       </Link>
                     </td>
+                    <td className="ts">{fmtTs(row.ts)}</td>
                     <td>
                       <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
                     </td>
