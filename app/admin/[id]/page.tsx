@@ -7,7 +7,7 @@ import { eventById, neighbors } from '@/queries/admin';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Traces Admin · ZeroIndex' };
+export const metadata: Metadata = { title: 'Event · Traces Admin · ZeroIndex' };
 
 function prettyJson(raw: string): string {
   try {
