@@ -229,7 +229,7 @@ code.chip {
 .admin-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 14px;
 }
 .admin-table thead th {
   text-align: left;
@@ -261,7 +261,7 @@ code.chip {
 .admin-table .ts,
 .admin-table .num-cell {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
 }
