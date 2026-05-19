@@ -78,9 +78,7 @@ export default async function AdminPage({
         </p>
       </section>
 
-      <div className="grad-divider"></div>
-
-      <section className="pt-10 pb-8">
+      <section className="pt-2 pb-8">
         <div className="label mb-2">00 / Recent events</div>
         <p className="muted text-sm mb-4">
           Newest first. {recent.total.toLocaleString()} total

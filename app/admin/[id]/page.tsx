@@ -57,9 +57,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         </div>
       </section>
 
-      <div className="grad-divider"></div>
-
-      <section className="pt-10 pb-8">
+      <section className="pt-2 pb-8">
         <div className="label mb-4">00 / Typed fields</div>
         <div className="card">
           <dl className="kv-list">
