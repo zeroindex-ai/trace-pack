@@ -155,6 +155,17 @@ code.chip {
   border-radius: 4px;
 }
 
+/* event-detail meta line — vertically center mixed-size fields on one row */
+.event-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.event-meta .meta-sep {
+  color: var(--muted-2);
+}
+
 .inline-link {
   color: inherit;
   text-decoration: underline;
@@ -241,6 +252,24 @@ code.chip {
   color: var(--muted-2);
   padding: 8px 12px 8px 0;
   border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #ffffff;
+}
+/* table cards are a rounded clipping frame; the inner wrapper scrolls.
+   keeping the scrollbar off the card lets its rounded corners survive. */
+.card:has(.admin-table) {
+  padding: 0;
+  overflow: hidden;
+}
+/* cap each data grid's height and give it its own scrollbar.
+   no top padding so the sticky header pins flush — nothing scrolls above it. */
+.table-scroll {
+  /* sticky header (~33px) + ~10 rows (~41px) + bottom padding */
+  max-height: 455px;
+  overflow-y: auto;
+  padding: 0 24px 8px;
 }
 .admin-table tbody td {
   padding: 10px 12px 10px 0;
@@ -250,13 +279,24 @@ code.chip {
 .admin-table tbody tr:last-child td {
   border-bottom: none;
 }
-.admin-table tbody tr:hover {
+/* highlight only clickable rows — clusters (no row-link) get no hover */
+.admin-table tbody tr:has(a.row-link):hover {
   background: var(--bg-soft);
+}
+/* rows with a #id link are clickable anywhere — stretch the link over the whole row */
+.admin-table tbody tr:has(a.row-link) {
+  position: relative;
+  cursor: pointer;
 }
 .admin-table a.row-link {
   display: block;
   text-decoration: none;
   color: inherit;
+}
+.admin-table a.row-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
 }
 .admin-table .ts,
 .admin-table .num-cell {

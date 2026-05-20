@@ -10,9 +10,9 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Traces Admin · ZeroIndex' };
 
 const SOURCE = process.env.DEFAULT_SOURCE ?? 'ask-zeroindex';
-const PAGE_SIZE = 50;
-const ERROR_LIMIT = 25;
-const CLUSTER_LIMIT = 25;
+const PAGE_SIZE = 500;
+const ERROR_LIMIT = 100;
+const CLUSTER_LIMIT = 50;
 
 const OUTCOME_FILTERS = ['all', ...OUTCOMES] as const;
 type OutcomeFilter = (typeof OUTCOME_FILTERS)[number];
@@ -64,6 +64,8 @@ export default async function AdminPage({
     questionClusters(client, SOURCE, 30, CLUSTER_LIMIT),
   ]);
   const totalPages = Math.max(1, Math.ceil(recent.total / PAGE_SIZE));
+  const rangeStart = recent.total === 0 ? 0 : offset + 1;
+  const rangeEnd = offset + recent.rows.length;
 
   return (
     <>
@@ -104,42 +106,47 @@ export default async function AdminPage({
           {recent.rows.length === 0 ? (
             <div className="empty-state">No events match this filter.</div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Timestamp</th>
-                  <th>Outcome</th>
-                  <th>Total</th>
-                  <th>First token</th>
-                  <th>Cites</th>
-                  <th>Question</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recent.rows.map((row) => (
-                  <EventTableRow key={row.id} row={row} />
-                ))}
-              </tbody>
-            </table>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Outcome</th>
+                    <th>Total</th>
+                    <th>First token</th>
+                    <th>Cites</th>
+                    <th>Question</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recent.rows.map((row) => (
+                    <EventTableRow key={row.id} row={row} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
-        <div className="pagination">
-          {pageNum > 1 ? (
-            <Link href={buildHref(pageNum - 1, outcome)}>← Prev</Link>
-          ) : (
-            <span className="disabled">← Prev</span>
-          )}
-          <span>
-            Page {pageNum} of {totalPages}
-          </span>
-          {pageNum < totalPages ? (
-            <Link href={buildHref(pageNum + 1, outcome)}>Next →</Link>
-          ) : (
-            <span className="disabled">Next →</span>
-          )}
-        </div>
+        {recent.total > PAGE_SIZE && (
+          <div className="pagination">
+            {pageNum > 1 ? (
+              <Link href={buildHref(pageNum - 1, outcome)}>← Previous {PAGE_SIZE.toLocaleString()}</Link>
+            ) : (
+              <span className="disabled">← Previous {PAGE_SIZE.toLocaleString()}</span>
+            )}
+            <span>
+              {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} of{' '}
+              {recent.total.toLocaleString()}
+            </span>
+            {pageNum < totalPages ? (
+              <Link href={buildHref(pageNum + 1, outcome)}>Next {PAGE_SIZE.toLocaleString()} →</Link>
+            ) : (
+              <span className="disabled">Next {PAGE_SIZE.toLocaleString()} →</span>
+            )}
+          </div>
+        )}
       </section>
 
       <div className="grad-divider"></div>
@@ -153,34 +160,36 @@ export default async function AdminPage({
           {errs.length === 0 ? (
             <div className="empty-state">No errors. Excellent.</div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Timestamp</th>
-                  <th>Outcome</th>
-                  <th>Error</th>
-                  <th>Question</th>
-                </tr>
-              </thead>
-              <tbody>
-                {errs.map((row) => (
-                  <tr key={row.id}>
-                    <td className="num-cell">
-                      <Link href={`/admin/${row.id}`} className="row-link">
-                        #{row.id}
-                      </Link>
-                    </td>
-                    <td className="ts">{fmtTs(row.ts)}</td>
-                    <td>
-                      <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
-                    </td>
-                    <td className="question">{row.error_message ?? '—'}</td>
-                    <td className="question">{row.question ?? '—'}</td>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Timestamp</th>
+                    <th>Outcome</th>
+                    <th>Error</th>
+                    <th>Question</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {errs.map((row) => (
+                    <tr key={row.id}>
+                      <td className="num-cell">
+                        <Link href={`/admin/${row.id}`} className="row-link">
+                          #{row.id}
+                        </Link>
+                      </td>
+                      <td className="ts">{fmtTs(row.ts)}</td>
+                      <td>
+                        <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
+                      </td>
+                      <td className="question">{row.error_message ?? '—'}</td>
+                      <td className="question">{row.question ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </section>
@@ -196,26 +205,28 @@ export default async function AdminPage({
           {clusters.length === 0 ? (
             <div className="empty-state">No data in the last 30 days.</div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Count</th>
-                  <th>Hash</th>
-                  <th>Most recent</th>
-                  <th>Sample question</th>
-                </tr>
-              </thead>
-              <tbody>
-                {clusters.map((c: ClusterRow) => (
-                  <tr key={c.question_hash}>
-                    <td className="num-cell">{c.count}</td>
-                    <td className="num-cell">{fmtHash(c.question_hash)}</td>
-                    <td className="ts">{fmtTs(c.most_recent_ts)}</td>
-                    <td className="question-wide">{c.sample_question}</td>
+            <div className="table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Count</th>
+                    <th>Hash</th>
+                    <th>Most recent</th>
+                    <th>Sample question</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {clusters.map((c: ClusterRow) => (
+                    <tr key={c.question_hash}>
+                      <td className="num-cell">{c.count}</td>
+                      <td className="num-cell">{fmtHash(c.question_hash)}</td>
+                      <td className="ts">{fmtTs(c.most_recent_ts)}</td>
+                      <td className="question-wide">{c.sample_question}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       </section>
