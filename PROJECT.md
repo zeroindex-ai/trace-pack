@@ -71,7 +71,7 @@ Load-bearing decisions, documented because the _why_ often outlasts the _what_.
 | **Tests**            | Vitest                                                                                                             | Already in the stack.                                                                                                                                                                                                                                  |
 | **Auth on `/admin`** | Basic auth via Next.js `proxy.ts` (renamed from `middleware.ts` in Next 16) with a single `ADMIN_PASSWORD` env var | Smallest viable surface for a single-owner dashboard. Swap to a real provider when multi-tenant arrives.                                                                                                                                               |
 | **Package manager**  | pnpm 10                                                                                                            | Same as the rest of the stack.                                                                                                                                                                                                                         |
-| **Node**             | 24 LTS                                                                                                             | Same as the rest of the stack.                                                                                                                                                                                                                         |
+| **Node**             | CI/dev on Node 24; `package.json` `engines` floor is `>=20`                                                       | CI and local dev run Node 24, matching the rest of the stack. The `engines` floor stays at `>=20` so the package still installs on any current LTS.                                                                                                     |
 | **License**          | MIT                                                                                                                | Matches `eval-pack` and `mcp-pack`.                                                                                                                                                                                                                    |
 
 ### Things deliberately NOT chosen
@@ -220,9 +220,9 @@ export const IngestEvent = z
 
 The `passthrough()` is load-bearing: it's the forward-compatibility guarantee. Consumers can add fields without coordinating with `trace-pack`.
 
-### Cron: `POST /api/rollup`
+### Cron: `GET /api/rollup`
 
-Vercel Cron–invoked once per day at 00:15 UTC. Aggregates yesterday's `events` into `rollup_daily`. Idempotent (`INSERT OR REPLACE`).
+Vercel Cron–invoked once per day at 00:15 UTC (Vercel Cron issues `GET`). Aggregates yesterday's `events` into `rollup_daily`. Idempotent (`INSERT OR REPLACE`).
 
 ---
 
@@ -331,7 +331,8 @@ trace-pack/
 │   │   ├── client.ts            Turso libsql client + retry wrapper
 │   │   ├── migrations/
 │   │   │   ├── 001_init.sql
-│   │   │   └── 002_rollup.sql
+│   │   │   ├── 002_rollup.sql
+│   │   │   └── 003_rate_limit.sql
 │   │   └── migrate.ts           runs every migration in order; idempotent
 │   ├── ingest/
 │   │   ├── schema.ts            Zod IngestEvent schema
@@ -344,9 +345,16 @@ trace-pack/
 │   ├── charts/
 │   │   ├── TrafficSparkline.tsx
 │   │   ├── OutcomeStack.tsx
-│   │   ├── LatencyPercentiles.tsx
+│   │   ├── LatencyLines.tsx
 │   │   ├── CitationHistogram.tsx
 │   │   └── TopRetrieved.tsx
+│   ├── lib/
+│   │   ├── backfill-parse.ts    pure parse + map logic for the backfill script
+│   │   ├── dates.ts             UTC day-offset helpers
+│   │   ├── format.ts            canonical admin timestamp/number formatting
+│   │   ├── palette.ts           chart color tokens mirroring globals.css :root
+│   │   ├── rateLimit.ts         Turso-backed token bucket for /api/ingest
+│   │   └── timingSafeCompare.ts constant-time string equality
 │   └── types/
 │       └── events.ts            shared types from Zod schema
 ├── scripts/
@@ -416,6 +424,12 @@ Required env vars (production):
 | `SOURCE_TOKEN_ASK_ZEROINDEX` | bearer token expected from `ask-zeroindex` ingest |
 | `ADMIN_PASSWORD`             | basic-auth password for `/admin/*`                |
 | `CRON_SECRET`                | shared secret for `/api/rollup`                   |
+
+Optional env vars:
+
+| Name             | Purpose                                                                         | Default         |
+| ---------------- | ------------------------------------------------------------------------------- | --------------- |
+| `DEFAULT_SOURCE` | the `source` the public `/` and `/admin` pages render when no source is chosen  | `ask-zeroindex` |
 
 Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the value to that consumer. No code change.
 
