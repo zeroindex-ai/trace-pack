@@ -19,7 +19,10 @@ export function dayBounds(day: string): { startIso: string; endIso: string } {
 }
 
 export function windowBounds(days: string[]): { startIso: string; endIso: string } {
-  const first = days[0]!;
-  const last = days[days.length - 1]!;
+  const first = days[0];
+  const last = days[days.length - 1];
+  if (first === undefined || last === undefined) {
+    throw new Error('windowBounds requires a non-empty day window');
+  }
   return { startIso: `${first}T00:00:00.000Z`, endIso: `${last}T23:59:59.999Z` };
 }

@@ -296,7 +296,7 @@ Question text is never rendered on this page.
 
 ### Admin `/admin` — auth-gated
 
-6. **Events table** — paginated, default-sorted newest first. Columns: ts, outcome, model, total_ms, first_token_ms, citation_count, question (truncated). Filters: outcome, date range, model.
+6. **Events table** — paginated, default-sorted newest first. Columns: id, ts, outcome, total_ms, first_token_ms, citation_count, question (truncated). Filter: outcome.
 7. **Error feed** — `outcome != 'ok'` only. Columns: ts, outcome, errorMessage, question. Click-through to the full event.
 8. **Question clusters** — group by `question_hash`, show count + most recent ts + sample question text. The "what do users actually ask" view.
 
