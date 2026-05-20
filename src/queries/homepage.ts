@@ -29,6 +29,17 @@ function emptyOutcomes(): Record<Outcome, number> {
   return { ok: 0, retrieval_failed: 0, stream_failed: 0, aborted: 0 };
 }
 
+// Returns the first and last day of a non-empty window. Throws on an empty
+// window rather than emitting `undefined` into SQL bounds.
+function windowEdges(window: string[]): { first: string; today: string } {
+  const first = window[0];
+  const today = window[window.length - 1];
+  if (first === undefined || today === undefined) {
+    throw new Error('day window must contain at least one day');
+  }
+  return { first, today };
+}
+
 export async function dailyTraffic(
   client: Client,
   source: string,
@@ -36,8 +47,7 @@ export async function dailyTraffic(
   now: Date = new Date()
 ): Promise<DailyTraffic[]> {
   const window = lastNDays(days, now);
-  const today = window[window.length - 1]!;
-  const first = window[0]!;
+  const { first, today } = windowEdges(window);
 
   const rollup = await client.execute({
     sql: 'SELECT day, events FROM rollup_daily WHERE source = ? AND day >= ? AND day < ?',
@@ -63,8 +73,7 @@ export async function dailyOutcomes(
   now: Date = new Date()
 ): Promise<DailyOutcomes[]> {
   const window = lastNDays(days, now);
-  const today = window[window.length - 1]!;
-  const first = window[0]!;
+  const { first, today } = windowEdges(window);
 
   const rollup = await client.execute({
     sql: `SELECT day, ok, retrieval_failed, stream_failed, aborted
@@ -107,8 +116,7 @@ export async function dailyLatencies(
   now: Date = new Date()
 ): Promise<DailyLatency[]> {
   const window = lastNDays(days, now);
-  const today = window[window.length - 1]!;
-  const first = window[0]!;
+  const { first, today } = windowEdges(window);
 
   const rollup = await client.execute({
     sql: `SELECT day, p50_total_ms, p95_total_ms, p99_total_ms,
