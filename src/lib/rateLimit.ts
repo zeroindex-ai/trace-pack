@@ -35,6 +35,9 @@ export type RateLimitOptions = {
 };
 
 // Pull the first non-empty IP from a possibly comma-separated x-forwarded-for.
+// Assumes a trusted proxy (Vercel) sets/overwrites x-forwarded-for, so the
+// leftmost value is the real client IP. A spoofed XFF could rotate the bucket
+// key, but that's mitigated at the edge/WAF layer, not here (see PROJECT.md §2).
 function firstForwardedIp(header: string | null): string | null {
   if (!header) return null;
   const first = header.split(',')[0]?.trim();
