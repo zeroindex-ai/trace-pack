@@ -38,9 +38,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           Event <span className="muted-2">#{event.id}</span>
         </h1>
-        <p className="mt-4 muted text-base leading-relaxed">
-          <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span> ·{' '}
-          <code className="chip">{event.source}</code> · {fmtTs(event.ts)}
+        <p className="mt-4 muted text-base leading-relaxed event-meta">
+          <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span>
+          <span className="meta-sep">·</span>
+          <code className="chip">{event.source}</code>
+          <span className="meta-sep">·</span>
+          {fmtTs(event.ts)}
         </p>
 
         <div className="pagination mt-6">
