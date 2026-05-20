@@ -29,6 +29,22 @@ function emptyOutcomes(): Record<Outcome, number> {
   return { ok: 0, retrieval_failed: 0, stream_failed: 0, aborted: 0 };
 }
 
+// CEILING NOTE — live "today" aggregation is unbounded.
+//
+// Historical days are served from the precomputed `rollup_daily` table, but the
+// current day is recomputed live on every `force-dynamic` homepage request: the
+// `dailyTraffic` / `dailyOutcomes` / `dailyLatencies` paths each run a COUNT or
+// a full-row percentile scan over *all* of today's raw `events` for the source.
+// There is intentionally no LIMIT or volume cap on these scans.
+//
+// This is safe under the v0.1 traffic assumption (a single-digit-thousands/day
+// ceiling per source on a small libsql DB), where a day's events comfortably fit
+// in a sub-100ms scan. It does NOT scale: at high daily volume these scans grow
+// linearly with traffic and will eventually dominate homepage latency. The fix
+// when that day comes is an incremental/partial rollup of the in-progress day
+// (e.g. an hourly rollup the live path tops up from) rather than a raw LIMIT —
+// a LIMIT here would silently under-count today's totals and percentiles.
+
 // Returns the first and last day of a non-empty window. Throws on an empty
 // window rather than emitting `undefined` into SQL bounds.
 function windowEdges(window: string[]): { first: string; today: string } {
