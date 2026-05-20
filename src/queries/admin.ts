@@ -115,8 +115,8 @@ export async function eventById(client: Client, id: number): Promise<EventDetail
     sql: `SELECT * FROM events WHERE id = ?`,
     args: [id],
   });
-  if (res.rows.length === 0) return null;
-  const r = res.rows[0]!;
+  const [r] = res.rows;
+  if (!r) return null;
   return {
     ...rowToEvent(r),
     question_hash: String(r.question_hash),
