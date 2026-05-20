@@ -89,6 +89,26 @@ describe('handleIngest', () => {
     expect(res.status).toBe(400);
   });
 
+  it('400s on an empty question', async () => {
+    const res = await handleIngest(
+      client,
+      ingestRequest(validEvent({ question: '' }), { auth: `Bearer ${VALID_TOKEN}` })
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('invalid_body');
+  });
+
+  it('400s on a negative firstTokenMs', async () => {
+    const res = await handleIngest(
+      client,
+      ingestRequest(validEvent({ firstTokenMs: -1 }), { auth: `Bearer ${VALID_TOKEN}` })
+    );
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error).toBe('invalid_body');
+  });
+
   it('401s when authorization header is missing', async () => {
     const res = await handleIngest(client, ingestRequest(validEvent(), { auth: null }));
     expect(res.status).toBe(401);

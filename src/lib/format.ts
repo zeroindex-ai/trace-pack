@@ -9,6 +9,10 @@ export function fmtTs(iso: string | null | undefined): string {
 
 export function fmtMs(n: number | null | undefined): string {
   if (n == null) return '—';
+  // Sub-second latencies read best in raw ms; once we cross 1000ms the
+  // headline dashboard is more legible in seconds (e.g. "4.73s" over
+  // "4730ms"). Two decimal places keep the precision a latency p99 needs.
+  if (n >= 1000) return `${(n / 1000).toFixed(2)}s`;
   return `${n}ms`;
 }
 
