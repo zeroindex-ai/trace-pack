@@ -146,6 +146,32 @@ describe('handleIngest', () => {
     expect(body.error).toBe('payload_too_large');
   });
 
+  it('429s with a retry-after header once the rate-limit bucket is drained', async () => {
+    // Capacity 1 with a frozen clock: the first request consumes the only
+    // token, the second is throttled before any parse/auth work.
+    const rateLimit = { capacity: 1, refillPerSec: 1, now: () => 1_000_000 };
+    const first = await handleIngest(
+      client,
+      ingestRequest(validEvent(), { auth: `Bearer ${VALID_TOKEN}` }),
+      rateLimit
+    );
+    expect(first.status).toBe(204);
+
+    const second = await handleIngest(
+      client,
+      ingestRequest(validEvent({ ts: '2026-05-15T12:35:00.000Z' }), { auth: `Bearer ${VALID_TOKEN}` }),
+      rateLimit
+    );
+    expect(second.status).toBe(429);
+    expect(second.headers.get('retry-after')).toBeTruthy();
+    const body = await second.json();
+    expect(body.error).toBe('rate_limited');
+
+    // The throttled request never reached the writer — still one row.
+    const rows = await client.execute('SELECT COUNT(*) AS n FROM events');
+    expect(Number(rows.rows[0]?.n)).toBe(1);
+  });
+
   it('stores unknown fields in raw_json via passthrough', async () => {
     const extended = { ...validEvent(), inputTokens: 1234, outputTokens: 567 };
     const res = await handleIngest(client, ingestRequest(extended, { auth: `Bearer ${VALID_TOKEN}` }));
