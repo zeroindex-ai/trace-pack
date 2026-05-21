@@ -19,7 +19,7 @@
     "next": "16.2.6",
     "react": "19.2.6",
     "react-dom": "19.2.6",
-    "recharts": "^2.15.0",
+    "recharts": "^3.8.1",
     "zod": "^4.4.2"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "eslint-config-next": "16.2.6",
     "prettier": "^3.8.3",
     "tailwindcss": "^4",
-    "tsx": "^4.22.1",
+    "tsx": "^4.22.2",
     "typescript": "^6",
     "vitest": "^4.1.5"
   },
