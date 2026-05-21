@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
         <link rel="apple-touch-icon" href="/favicon-180x180.png" />
       </head>
-      <body>
+      <body className="min-h-screen flex flex-col">
         <a href="#main-content" className="skip-link">
           Skip to content
         </a>
@@ -66,8 +66,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <div className="max-w-6xl mx-auto px-6 md:px-10">
-          <main id="main-content">{children}</main>
+        <div className="max-w-6xl w-full mx-auto px-6 md:px-10 flex-1 flex flex-col">
+          <main id="main-content" className="flex-1">{children}</main>
 
           <footer className="border-t line py-10 text-sm">
             <div className="muted flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
