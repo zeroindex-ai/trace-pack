@@ -47,5 +47,10 @@
     "url": "https://github.com/zeroindex-ai/trace-pack/issues"
   },
   "license": "MIT",
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.5.15": ">=8.5.15"
+    }
+  }
 }
