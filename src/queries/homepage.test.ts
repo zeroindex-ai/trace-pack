@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createClient, type Client } from '@libsql/client';
 import { migrate } from '../db/migrate';
 import { insertEvent } from '../ingest/write';
-import type { IngestEvent } from '../ingest/schema';
+import type { AskEvent, IngestEvent } from '../ingest/schema';
 import { rollupDay } from './rollup';
 import {
   citationHistogram,
@@ -15,7 +15,7 @@ import {
 
 const NOW = new Date('2026-05-15T12:00:00.000Z');
 
-function event(ts: string, overrides: Partial<IngestEvent> = {}): IngestEvent {
+function event(ts: string, overrides: Partial<AskEvent> = {}): IngestEvent {
   return {
     source: 'ask-zeroindex',
     event: 'ask',

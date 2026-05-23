@@ -89,21 +89,24 @@ export async function questionClusters(
   const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days));
   const startIso = start.toISOString();
 
+  // The column is `dedup_hash` (renamed in 004); for `ask` events it is the
+  // question hash, so this clustering view — an ask-only feature — surfaces it
+  // under the `question_hash` field it has always used.
   const res = await client.execute({
-    sql: `SELECT question_hash,
+    sql: `SELECT dedup_hash,
                  COUNT(*) AS count,
                  MAX(ts) AS most_recent_ts,
                  question AS sample_question
           FROM events
           WHERE source = ? AND ts >= ?
-          GROUP BY question_hash
+          GROUP BY dedup_hash
           ORDER BY count DESC, most_recent_ts DESC
           LIMIT ?`,
     args: [source, startIso, limit],
   });
 
   return res.rows.map((r) => ({
-    question_hash: String(r.question_hash),
+    question_hash: String(r.dedup_hash),
     count: Number(r.count),
     most_recent_ts: String(r.most_recent_ts),
     sample_question: r.sample_question == null ? '' : String(r.sample_question),
@@ -119,7 +122,7 @@ export async function eventById(client: Client, id: number): Promise<EventDetail
   if (!r) return null;
   return {
     ...rowToEvent(r),
-    question_hash: String(r.question_hash),
+    question_hash: String(r.dedup_hash), // column renamed in 004; field kept for the ask detail view
     retrieved_ids: r.retrieved_ids == null ? null : String(r.retrieved_ids),
     raw_json: String(r.raw_json),
   };

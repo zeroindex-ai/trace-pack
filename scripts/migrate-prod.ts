@@ -12,7 +12,8 @@
  *   TURSO_DATABASE_URL
  *   TURSO_AUTH_TOKEN  (omit for local file: URLs)
  *
- * Idempotent — every DDL uses IF NOT EXISTS, so re-running is safe.
+ * Idempotent — the runner records applied files in `schema_migrations`, so each
+ * migration runs exactly once and re-running is safe.
  */
 
 import { createClient } from '@libsql/client';
