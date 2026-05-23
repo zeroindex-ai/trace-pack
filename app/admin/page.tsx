@@ -108,6 +108,15 @@ export default async function AdminPage({
           ) : (
             <div className="table-scroll">
               <table className="admin-table">
+                <colgroup>
+                  <col style={{ width: '64px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '132px' }} />
+                  <col style={{ width: '84px' }} />
+                  <col style={{ width: '104px' }} />
+                  <col style={{ width: '64px' }} />
+                  <col />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -137,8 +146,7 @@ export default async function AdminPage({
               <span className="disabled">← Previous {PAGE_SIZE.toLocaleString()}</span>
             )}
             <span>
-              {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} of{' '}
-              {recent.total.toLocaleString()}
+              {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} of {recent.total.toLocaleString()}
             </span>
             {pageNum < totalPages ? (
               <Link href={buildHref(pageNum + 1, outcome)}>Next {PAGE_SIZE.toLocaleString()} →</Link>
@@ -160,8 +168,15 @@ export default async function AdminPage({
           {errs.length === 0 ? (
             <div className="empty-state">No errors. Excellent.</div>
           ) : (
-            <div className="table-scroll">
+            <div className="table-scroll table-scroll-min">
               <table className="admin-table">
+                <colgroup>
+                  <col style={{ width: '64px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col style={{ width: '132px' }} />
+                  <col />
+                  <col />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>ID</th>
@@ -207,6 +222,12 @@ export default async function AdminPage({
           ) : (
             <div className="table-scroll">
               <table className="admin-table">
+                <colgroup>
+                  <col style={{ width: '72px' }} />
+                  <col style={{ width: '120px' }} />
+                  <col style={{ width: '150px' }} />
+                  <col />
+                </colgroup>
                 <thead>
                   <tr>
                     <th>Count</th>

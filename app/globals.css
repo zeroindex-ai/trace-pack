@@ -79,15 +79,31 @@ body {
   opacity: 0.6;
 }
 
-/* Tier B sticky header — matches evals-site/public/index.html.
-   See zeroindexai/STYLE_GUIDE.md §6. */
+/* Tier B sticky header — canonical chrome (see reference_zeroindex_subdomain_layout).
+   The bottom border lives on the inner flex row (inset to content width), not here. */
 .site-header {
   background: var(--bg);
-  border-bottom: 1px solid transparent;
-  transition: border-color 0.2s ease;
 }
-.site-header.scrolled {
-  border-bottom-color: var(--line);
+
+/* Brand CTA pill — the header back link; matches the apex "Start a project". */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background: linear-gradient(120deg, #18181b 0%, #27272a 100%);
+  color: #faf9f5;
+  border-radius: 9999px;
+  text-decoration: none;
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.15s ease;
+}
+.btn-primary:hover {
+  box-shadow: 0 8px 24px -12px rgba(124, 58, 237, 0.35);
+  transform: translateY(-2px);
 }
 
 .brand-link {
@@ -241,6 +257,9 @@ code.chip {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  /* fixed layout = column widths come from the colgroup, not the content, so
+     they stay put when the outcome filter swaps which rows are shown. */
+  table-layout: fixed;
 }
 .admin-table thead th {
   text-align: left;
@@ -270,6 +289,11 @@ code.chip {
   max-height: 455px;
   overflow-y: auto;
   padding: 0 24px 8px;
+}
+/* the error feed usually has few rows; keep a floor (~header + 5 rows) so the
+   frame doesn't collapse to a sliver when there are only one or two errors. */
+.table-scroll-min {
+  min-height: 250px;
 }
 .admin-table tbody td {
   padding: 10px 12px 10px 0;
@@ -305,16 +329,13 @@ code.chip {
   color: var(--muted);
   white-space: nowrap;
 }
-.admin-table .question {
-  color: var(--ink);
-  max-width: 480px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* free-text cells wrap within their (fixed) column rather than forcing a
+   horizontal scrollbar; overflow-wrap breaks the rare unbroken long token. */
+.admin-table .question,
 .admin-table .question-wide {
   color: var(--ink);
-  max-width: 720px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .outcome-tag {
