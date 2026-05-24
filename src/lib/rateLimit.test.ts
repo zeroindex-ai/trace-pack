@@ -79,4 +79,15 @@ describe('checkRateLimit (in-memory libsql)', () => {
     expect(a1.allowed).toBe(true);
     expect(b1.allowed).toBe(true);
   });
+
+  it('does not over-allow under a concurrent same-key burst (atomic consume)', async () => {
+    // Capacity 1, frozen clock (no refill), 8 simultaneous requests on one key.
+    // The pre-fix SELECT-then-write let interleaved requests each read the full
+    // bucket and all pass; the guarded atomic UPDATE admits exactly one.
+    const opts = { now: () => 1_000_000, capacity: 1, refillPerSec: 1 };
+    const results = await Promise.all(
+      Array.from({ length: 8 }, () => checkRateLimit(client, 'ip:burst', opts))
+    );
+    expect(results.filter((r) => r.allowed)).toHaveLength(1);
+  });
 });
