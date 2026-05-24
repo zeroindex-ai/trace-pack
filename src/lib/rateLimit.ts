@@ -83,28 +83,45 @@ export async function checkRateLimit(
   const refillPerSec = opts.refillPerSec ?? BUCKET_REFILL_PER_SEC;
   const nowMs = now();
 
-  const existing = await client.execute({
+  // Seed a full bucket the first time we see this key; ignored if it exists.
+  await client.execute({
+    sql: 'INSERT OR IGNORE INTO rate_limit_buckets (key, tokens, updated_at) VALUES (?, ?, ?)',
+    args: [key, capacity, nowMs],
+  });
+
+  // Atomic refill-and-consume: one UPDATE recomputes the continuously refilled
+  // balance and decrements a token only if that balance is >= 1. The refill and
+  // the >= 1 guard live in SQL, so SQLite's single-writer lock serializes
+  // concurrent requests on the same key — two can't both pass the guard. This
+  // replaces a prior SELECT-then-write that had a TOCTOU race (interleaved
+  // requests each read the same balance and were both allowed). RETURNING yields
+  // the post-decrement balance for `remaining`.
+  const refill = `MIN(?, tokens + ((? - updated_at) / 1000.0) * ?)`;
+  const consumed = await client.execute({
+    sql: `UPDATE rate_limit_buckets
+             SET tokens = ${refill} - 1, updated_at = ?
+           WHERE key = ? AND ${refill} >= 1
+           RETURNING tokens`,
+    args: [capacity, nowMs, refillPerSec, nowMs, key, capacity, nowMs, refillPerSec],
+  });
+
+  // A RETURNING row means the guarded UPDATE matched and consumed a token.
+  // (libsql reports rowsAffected as 0 when RETURNING is present, so key off the
+  // returned row, not rowsAffected.)
+  const consumedRow = consumed.rows[0];
+  if (consumedRow) {
+    return { allowed: true, remaining: Math.floor(Number(consumedRow.tokens ?? 0)) };
+  }
+
+  // Denied — read current state only to compute a Retry-After. The guard above
+  // already made the decision; this read doesn't affect correctness.
+  const current = await client.execute({
     sql: 'SELECT tokens, updated_at FROM rate_limit_buckets WHERE key = ?',
     args: [key],
   });
-
-  const row = existing.rows[0];
-  const currentTokens = row && row.tokens !== null ? Number(row.tokens) : capacity;
+  const row = current.rows[0];
+  const tokens = row && row.tokens !== null ? Number(row.tokens) : 0;
   const lastUpdated = row && row.updated_at !== null ? Number(row.updated_at) : nowMs;
-
-  const next = computeNextState(currentTokens, lastUpdated, nowMs, capacity, refillPerSec);
-
-  await client.execute({
-    sql: `
-      INSERT INTO rate_limit_buckets (key, tokens, updated_at)
-      VALUES (?, ?, ?)
-      ON CONFLICT(key) DO UPDATE SET tokens = excluded.tokens, updated_at = excluded.updated_at
-    `,
-    args: [key, next.tokens, nowMs],
-  });
-
-  if (next.allowed) {
-    return { allowed: true, remaining: Math.floor(next.tokens) };
-  }
+  const next = computeNextState(tokens, lastUpdated, nowMs, capacity, refillPerSec);
   return { allowed: false, retryAfterSec: next.retryAfterSec };
 }
