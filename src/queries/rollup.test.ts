@@ -96,6 +96,33 @@ describe('rollupDay', () => {
     expect(Number(stored.rows[0]?.events)).toBe(3);
   });
 
+  it('aggregates the universal status axis and spend', async () => {
+    await seed(client, [
+      event({
+        ts: '2026-05-14T01:00:00.000Z',
+        totalMs: 1000,
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+      }),
+      event({ ts: '2026-05-14T02:00:00.000Z', totalMs: 2000, outcome: 'stream_failed' }),
+      event({ ts: '2026-05-14T03:00:00.000Z', totalMs: 1500, outcome: 'aborted' }),
+    ]);
+
+    const [s] = await rollupDay(client, '2026-05-14');
+    expect(s).toMatchObject({ n_ok: 1, n_error: 1, n_aborted: 1 });
+    // Only the first event carries tokens: 1M in @ $3 + 1M out @ $15 = $18.
+    expect(s?.sum_cost_usd).toBe(18);
+    expect(s?.sum_input_tokens).toBe(1_000_000);
+    expect(s?.sum_output_tokens).toBe(1_000_000);
+  });
+
+  it('leaves spend null for a day with no token data', async () => {
+    await seed(client, [event({ ts: '2026-05-14T01:00:00.000Z', totalMs: 1000 })]);
+    const [s] = await rollupDay(client, '2026-05-14');
+    expect(s?.sum_cost_usd).toBeNull();
+    expect(s?.sum_input_tokens).toBeNull();
+  });
+
   it('excludes events outside the day window', async () => {
     await seed(client, [
       event({ ts: '2026-05-13T23:59:59.000Z', totalMs: 9999 }),

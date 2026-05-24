@@ -8,6 +8,7 @@ import {
   citationHistogram,
   dailyLatencies,
   dailyOutcomes,
+  dailySpend,
   dailyTraffic,
   lastNDays,
   topRetrievedIds,
@@ -175,5 +176,37 @@ describe('topRetrievedIds', () => {
     await seed(client, [event('2026-05-14T01:00:00.000Z', { retrievedIds: [1, 2, 3, 4, 5] })]);
     const result = await topRetrievedIds(client, 'ask-zeroindex', 7, 2, NOW);
     expect(result).toHaveLength(2);
+  });
+});
+
+describe('dailySpend', () => {
+  let client: Client;
+  beforeEach(async () => {
+    client = createClient({ url: ':memory:' });
+    await migrate(client);
+  });
+
+  it('reads past spend from rollup and today live from events', async () => {
+    await seed(client, [
+      // past day, rolled up: 1M in @ $3 + 1M out @ $15 = $18.
+      event('2026-05-13T10:00:00.000Z', { inputTokens: 1_000_000, outputTokens: 1_000_000 }),
+      // today, live: another $18.
+      event('2026-05-15T01:00:00.000Z', { inputTokens: 1_000_000, outputTokens: 1_000_000 }),
+    ]);
+    await rollupDay(client, '2026-05-13');
+
+    const result = await dailySpend(client, 'ask-zeroindex', 7, NOW);
+    const byDay = Object.fromEntries(result.map((r) => [r.day, r]));
+    expect(byDay['2026-05-13']?.cost_usd).toBe(18);
+    expect(byDay['2026-05-15']?.cost_usd).toBe(18);
+    expect(byDay['2026-05-15']?.input_tokens).toBe(1_000_000);
+  });
+
+  it('leaves cost null on days with no token data', async () => {
+    await seed(client, [event('2026-05-15T01:00:00.000Z')]);
+    const result = await dailySpend(client, 'ask-zeroindex', 7, NOW);
+    const byDay = Object.fromEntries(result.map((r) => [r.day, r]));
+    expect(byDay['2026-05-15']?.cost_usd).toBeNull();
+    expect(byDay['2026-05-14']?.cost_usd).toBeNull();
   });
 });

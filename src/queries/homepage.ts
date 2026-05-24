@@ -24,6 +24,12 @@ export type DailyLatency = {
 };
 export type CitationBucket = { count: number; frequency: number };
 export type RetrievedIdRow = { chunkId: number; count: number };
+export type DailySpend = {
+  day: string;
+  cost_usd: number | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+};
 
 function emptyOutcomes(): Record<Outcome, number> {
   return { ok: 0, retrieval_failed: 0, stream_failed: 0, aborted: 0 };
@@ -186,6 +192,49 @@ export async function dailyLatencies(
         p95_first_token_ms: null,
         p99_first_token_ms: null,
       }
+  );
+}
+
+export async function dailySpend(
+  client: Client,
+  source: string,
+  days: number,
+  now: Date = new Date()
+): Promise<DailySpend[]> {
+  const window = lastNDays(days, now);
+  const { first, today } = windowEdges(window);
+
+  const rollup = await client.execute({
+    sql: `SELECT day, sum_cost_usd, sum_input_tokens, sum_output_tokens
+          FROM rollup_daily WHERE source = ? AND day >= ? AND day < ?`,
+    args: [source, first, today],
+  });
+  const byDay = new Map<string, DailySpend>();
+  for (const r of rollup.rows) {
+    byDay.set(String(r.day), {
+      day: String(r.day),
+      cost_usd: r.sum_cost_usd == null ? null : Number(r.sum_cost_usd),
+      input_tokens: r.sum_input_tokens == null ? null : Number(r.sum_input_tokens),
+      output_tokens: r.sum_output_tokens == null ? null : Number(r.sum_output_tokens),
+    });
+  }
+
+  const { startIso, endIso } = dayBounds(today);
+  const todayRow = await client.execute({
+    sql: `SELECT SUM(cost_usd) AS cost, SUM(input_tokens) AS inp, SUM(output_tokens) AS outp
+          FROM events WHERE source = ? AND ts >= ? AND ts <= ?`,
+    args: [source, startIso, endIso],
+  });
+  const tr = todayRow.rows[0];
+  byDay.set(today, {
+    day: today,
+    cost_usd: tr?.cost == null ? null : Number(tr.cost),
+    input_tokens: tr?.inp == null ? null : Number(tr.inp),
+    output_tokens: tr?.outp == null ? null : Number(tr.outp),
+  });
+
+  return window.map(
+    (d) => byDay.get(d) ?? { day: d, cost_usd: null, input_tokens: null, output_tokens: null }
   );
 }
 
