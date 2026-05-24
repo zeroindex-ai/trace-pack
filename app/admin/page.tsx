@@ -4,12 +4,14 @@ import { db } from '@/db/client';
 import { OUTCOMES } from '@/ingest/schema';
 import { fmtHash, fmtMs, fmtTs } from '@/lib/format';
 import { errorEvents, questionClusters, recentEvents, type EventRow, type ClusterRow } from '@/queries/admin';
+import { listSources } from '@/queries/sources';
+import { SourceSwitcher } from '@/components/SourceSwitcher';
 
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Traces Admin · ZeroIndex' };
 
-const SOURCE = process.env.DEFAULT_SOURCE ?? 'ask-zeroindex';
+const DEFAULT_SOURCE = process.env.DEFAULT_SOURCE ?? 'ask-zeroindex';
 const PAGE_SIZE = 500;
 const ERROR_LIMIT = 100;
 const CLUSTER_LIMIT = 50;
@@ -17,8 +19,9 @@ const CLUSTER_LIMIT = 50;
 const OUTCOME_FILTERS = ['all', ...OUTCOMES] as const;
 type OutcomeFilter = (typeof OUTCOME_FILTERS)[number];
 
-function buildHref(page: number, outcome: OutcomeFilter): string {
+function buildHref(source: string, page: number, outcome: OutcomeFilter): string {
   const params = new URLSearchParams();
+  if (source !== DEFAULT_SOURCE) params.set('source', source);
   if (page > 1) params.set('page', String(page));
   if (outcome !== 'all') params.set('outcome', outcome);
   const qs = params.toString();
@@ -48,7 +51,7 @@ function EventTableRow({ row }: { row: EventRow }) {
 export default async function AdminPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; outcome?: string }>;
+  searchParams: Promise<{ source?: string; page?: string; outcome?: string }>;
 }) {
   const sp = await searchParams;
   const pageNum = Math.max(1, Number.parseInt(sp.page ?? '1', 10) || 1);
@@ -58,10 +61,12 @@ export default async function AdminPage({
   const offset = (pageNum - 1) * PAGE_SIZE;
 
   const client = db();
+  const sources = await listSources(client);
+  const source = sp.source && sources.includes(sp.source) ? sp.source : DEFAULT_SOURCE;
   const [recent, errs, clusters] = await Promise.all([
-    recentEvents(client, SOURCE, { limit: PAGE_SIZE, offset, outcome }),
-    errorEvents(client, SOURCE, ERROR_LIMIT),
-    questionClusters(client, SOURCE, 30, CLUSTER_LIMIT),
+    recentEvents(client, source, { limit: PAGE_SIZE, offset, outcome }),
+    errorEvents(client, source, ERROR_LIMIT),
+    questionClusters(client, source, 30, CLUSTER_LIMIT),
   ]);
   const totalPages = Math.max(1, Math.ceil(recent.total / PAGE_SIZE));
   const rangeStart = recent.total === 0 ? 0 : offset + 1;
@@ -73,12 +78,17 @@ export default async function AdminPage({
         <div className="label mb-3">Admin</div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Events.</h1>
         <p className="mt-4 muted text-base leading-relaxed max-w-5xl">
-          Per-event detail for <code className="chip">{SOURCE}</code>. Public dashboard at{' '}
+          Per-event detail for <code className="chip">{source}</code>. Public dashboard at{' '}
           <Link href="/" className="inline-link">
             /
           </Link>{' '}
           shows aggregates only.
         </p>
+        {sources.length > 1 && (
+          <div className="mt-4">
+            <SourceSwitcher sources={sources} current={source} hrefFor={(s) => buildHref(s, 1, 'all')} />
+          </div>
+        )}
       </section>
 
       <section className="pt-2 pb-8">
@@ -95,7 +105,7 @@ export default async function AdminPage({
                 {o}
               </span>
             ) : (
-              <Link key={o} href={buildHref(1, o)}>
+              <Link key={o} href={buildHref(source, 1, o)}>
                 {o}
               </Link>
             )
@@ -141,7 +151,9 @@ export default async function AdminPage({
         {recent.total > PAGE_SIZE && (
           <div className="pagination">
             {pageNum > 1 ? (
-              <Link href={buildHref(pageNum - 1, outcome)}>← Previous {PAGE_SIZE.toLocaleString()}</Link>
+              <Link href={buildHref(source, pageNum - 1, outcome)}>
+                ← Previous {PAGE_SIZE.toLocaleString()}
+              </Link>
             ) : (
               <span className="disabled">← Previous {PAGE_SIZE.toLocaleString()}</span>
             )}
@@ -149,7 +161,7 @@ export default async function AdminPage({
               {rangeStart.toLocaleString()}–{rangeEnd.toLocaleString()} of {recent.total.toLocaleString()}
             </span>
             {pageNum < totalPages ? (
-              <Link href={buildHref(pageNum + 1, outcome)}>Next {PAGE_SIZE.toLocaleString()} →</Link>
+              <Link href={buildHref(source, pageNum + 1, outcome)}>Next {PAGE_SIZE.toLocaleString()} →</Link>
             ) : (
               <span className="disabled">Next {PAGE_SIZE.toLocaleString()} →</span>
             )}

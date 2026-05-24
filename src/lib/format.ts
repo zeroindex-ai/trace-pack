@@ -19,3 +19,21 @@ export function fmtMs(n: number | null | undefined): string {
 export function fmtHash(h: string): string {
   return h.slice(0, 8);
 }
+
+export function fmtUsd(n: number | null | undefined): string {
+  if (n == null) return '—';
+  if (n === 0) return '$0';
+  // Sub-dollar spend (typical per-day for a small app) needs more precision than
+  // cents; once we cross $1 two decimals read cleanly.
+  return n < 1 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`;
+}
+
+export function fmtPct(rate: number | null | undefined): string {
+  if (rate == null) return '—';
+  return `${(rate * 100).toFixed(1)}%`;
+}
+
+export function fmtInt(n: number | null | undefined): string {
+  if (n == null) return '—';
+  return n.toLocaleString();
+}
