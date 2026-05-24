@@ -4,14 +4,19 @@
 // the absolute numbers. Cost is computed at ingest and STORED (design §3), so an
 // edit here is non-retroactive: it affects new events only. An unknown model
 // yields a null cost (a visible gap), never a misleading $0.
-export const PRICES_AS_OF = '2026-05-22';
+export const PRICES_AS_OF = '2026-05-24';
 
 type ModelPrice = { inputPer1M: number; outputPer1M: number };
 
 // Matched by substring against the lowercased model id, most specific first, so
 // dated/suffixed ids ('claude-sonnet-4-6', 'claude-sonnet-4-6-20250219', …) resolve.
+// Opus 4.5 dropped the Opus rate to $5/$25; 4.0/4.1 stay at the original $15/$75,
+// so the current-gen ids must be listed BEFORE the 'claude-opus-4' catch-all.
 const PRICES: ReadonlyArray<readonly [match: string, price: ModelPrice]> = [
-  ['claude-opus-4', { inputPer1M: 15, outputPer1M: 75 }],
+  ['claude-opus-4-5', { inputPer1M: 5, outputPer1M: 25 }],
+  ['claude-opus-4-6', { inputPer1M: 5, outputPer1M: 25 }],
+  ['claude-opus-4-7', { inputPer1M: 5, outputPer1M: 25 }],
+  ['claude-opus-4', { inputPer1M: 15, outputPer1M: 75 }], // Opus 4.0 / 4.1 (pre-price-drop)
   ['claude-sonnet-4', { inputPer1M: 3, outputPer1M: 15 }],
   ['claude-haiku-4', { inputPer1M: 1, outputPer1M: 5 }],
   ['claude-3-7-sonnet', { inputPer1M: 3, outputPer1M: 15 }],

@@ -10,6 +10,13 @@ describe('priceFor', () => {
     expect(priceFor('claude-opus-4-1-20250805')).toEqual({ inputPer1M: 15, outputPer1M: 75 });
   });
 
+  it('prices current-gen Opus (4.5+) at the dropped $5/$25 rate, legacy Opus 4.0/4.1 at $15/$75', () => {
+    expect(priceFor('claude-opus-4-7')).toEqual({ inputPer1M: 5, outputPer1M: 25 });
+    expect(priceFor('claude-opus-4-6')).toEqual({ inputPer1M: 5, outputPer1M: 25 });
+    expect(priceFor('claude-opus-4-5')).toEqual({ inputPer1M: 5, outputPer1M: 25 });
+    expect(priceFor('claude-opus-4-1')).toEqual({ inputPer1M: 15, outputPer1M: 75 });
+  });
+
   it('is case-insensitive', () => {
     expect(priceFor('Claude-Sonnet-4-6')).toEqual({ inputPer1M: 3, outputPer1M: 15 });
   });
