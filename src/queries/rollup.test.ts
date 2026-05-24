@@ -2,12 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createClient, type Client } from '@libsql/client';
 import { migrate } from '../db/migrate';
 import { insertEvent } from '../ingest/write';
-import type { IngestEvent } from '../ingest/schema';
+import type { AskEvent, IngestEvent } from '../ingest/schema';
 import { handleRollup, percentile, rollupDay, yesterdayUtc } from './rollup';
 
 const CRON_SECRET = 'test-cron-secret';
 
-function event(overrides: Partial<IngestEvent> & { ts: string; totalMs: number }): IngestEvent {
+function event(overrides: Partial<AskEvent> & { ts: string; totalMs: number }): IngestEvent {
   return {
     source: 'ask-zeroindex',
     event: 'ask' as const,

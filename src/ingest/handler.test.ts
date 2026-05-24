@@ -58,7 +58,8 @@ describe('handleIngest', () => {
     expect(rows.rows).toHaveLength(1);
     expect(rows.rows[0]?.source).toBe('ask-zeroindex');
     expect(rows.rows[0]?.outcome).toBe('ok');
-    expect(rows.rows[0]?.question_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(rows.rows[0]?.status).toBe('ok');
+    expect(rows.rows[0]?.dedup_hash).toMatch(/^[0-9a-f]{64}$/);
   });
 
   it('400s on non-JSON body', async () => {
@@ -193,13 +194,47 @@ describe('handleIngest', () => {
   });
 
   it('stores unknown fields in raw_json via passthrough', async () => {
-    const extended = { ...validEvent(), inputTokens: 1234, outputTokens: 567 };
+    const extended = { ...validEvent(), favoriteColor: 'violet' };
     const res = await handleIngest(client, ingestRequest(extended, { auth: `Bearer ${VALID_TOKEN}` }));
     expect(res.status).toBe(204);
 
     const rows = await client.execute('SELECT raw_json FROM events');
     const raw = JSON.parse(String(rows.rows[0]?.raw_json));
-    expect(raw.inputTokens).toBe(1234);
-    expect(raw.outputTokens).toBe(567);
+    expect(raw.favoriteColor).toBe('violet');
+  });
+
+  it('computes and stores cost from token usage on an ask event', async () => {
+    // 1M input @ $3 + 1M output @ $15 = $18 for claude-sonnet-4-6.
+    const withTokens = validEvent({ inputTokens: 1_000_000, outputTokens: 1_000_000 });
+    const res = await handleIngest(client, ingestRequest(withTokens, { auth: `Bearer ${VALID_TOKEN}` }));
+    expect(res.status).toBe(204);
+
+    const rows = await client.execute('SELECT input_tokens, output_tokens, cost_usd FROM events');
+    expect(Number(rows.rows[0]?.input_tokens)).toBe(1_000_000);
+    expect(Number(rows.rows[0]?.output_tokens)).toBe(1_000_000);
+    expect(Number(rows.rows[0]?.cost_usd)).toBe(18);
+  });
+
+  it('accepts a non-ask (generic) event and stores its status', async () => {
+    const generic = {
+      source: 'ask-zeroindex', // reuse the configured token; source != event type
+      event: 'extract',
+      ts: '2026-05-15T12:34:56.789Z',
+      model: 'claude-sonnet-4-6',
+      status: 'error',
+      outcomeReason: 'extraction_low_confidence',
+      totalMs: 1500,
+      inputTokens: 2000,
+      outputTokens: 300,
+    };
+    const res = await handleIngest(client, ingestRequest(generic, { auth: `Bearer ${VALID_TOKEN}` }));
+    expect(res.status).toBe(204);
+
+    const rows = await client.execute('SELECT event, status, outcome, outcome_reason, question FROM events');
+    expect(rows.rows[0]?.event).toBe('extract');
+    expect(rows.rows[0]?.status).toBe('error');
+    expect(rows.rows[0]?.outcome).toBe('extraction_low_confidence');
+    expect(rows.rows[0]?.outcome_reason).toBe('extraction_low_confidence');
+    expect(rows.rows[0]?.question).toBeNull();
   });
 });

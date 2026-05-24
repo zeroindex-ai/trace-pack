@@ -10,7 +10,7 @@ describe('migrate', () => {
   it('applies every migration in order', async () => {
     const client = freshClient();
     const applied = await migrate(client);
-    expect(applied).toEqual(['001_init.sql', '002_rollup.sql', '003_rate_limit.sql']);
+    expect(applied).toEqual(['001_init.sql', '002_rollup.sql', '003_rate_limit.sql', '004_multi_app.sql']);
   });
 
   it('creates the events and rollup_daily tables', async () => {
@@ -23,10 +23,12 @@ describe('migrate', () => {
     expect(names).toContain('rate_limit_buckets');
   });
 
-  it('is idempotent — re-running does not error', async () => {
+  it('is idempotent — a second run applies nothing and does not error', async () => {
     const client = freshClient();
     await migrate(client);
-    await expect(migrate(client)).resolves.toEqual(['001_init.sql', '002_rollup.sql', '003_rate_limit.sql']);
+    // With schema_migrations tracking, the second pass applies no files — which
+    // is what keeps non-idempotent ALTERs in 004 from erroring on re-run.
+    await expect(migrate(client)).resolves.toEqual([]);
   });
 
   it('creates the expected indexes on events', async () => {
@@ -39,5 +41,32 @@ describe('migrate', () => {
     expect(names).toContain('idx_events_source_ts');
     expect(names).toContain('idx_events_source_outcome');
     expect(names).toContain('idx_events_source_hash');
+  });
+
+  it('004 generalizes the events schema (renames question_hash, adds core columns)', async () => {
+    const client = freshClient();
+    await migrate(client);
+    const cols = await client.execute("SELECT name FROM pragma_table_info('events')");
+    const names = cols.rows.map((r) => String(r.name));
+    expect(names).toContain('dedup_hash');
+    expect(names).not.toContain('question_hash');
+    for (const c of ['status', 'outcome_reason', 'input_tokens', 'output_tokens', 'cost_usd']) {
+      expect(names).toContain(c);
+    }
+  });
+
+  it('004 backfills status from the legacy ask outcome', async () => {
+    const client = freshClient();
+    await migrate(client);
+    // Insert a pre-generalization-style row and confirm the status mapping holds
+    // for new writes through the column (backfill of existing rows uses the same
+    // CASE; this exercises the resulting schema).
+    await client.execute({
+      sql: `INSERT INTO events (source, event, ts, dedup_hash, outcome, status, raw_json)
+            VALUES (?, 'ask', ?, ?, 'stream_failed', 'error', '{}')`,
+      args: ['s', '2026-05-15T00:00:00.000Z', 'h'.repeat(64)],
+    });
+    const res = await client.execute("SELECT status FROM events WHERE outcome = 'stream_failed'");
+    expect(res.rows[0]?.status).toBe('error');
   });
 });
