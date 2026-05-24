@@ -10,7 +10,13 @@ describe('migrate', () => {
   it('applies every migration in order', async () => {
     const client = freshClient();
     const applied = await migrate(client);
-    expect(applied).toEqual(['001_init.sql', '002_rollup.sql', '003_rate_limit.sql', '004_multi_app.sql']);
+    expect(applied).toEqual([
+      '001_init.sql',
+      '002_rollup.sql',
+      '003_rate_limit.sql',
+      '004_multi_app.sql',
+      '005_rollup_multi_app.sql',
+    ]);
   });
 
   it('creates the events and rollup_daily tables', async () => {
@@ -51,6 +57,23 @@ describe('migrate', () => {
     expect(names).toContain('dedup_hash');
     expect(names).not.toContain('question_hash');
     for (const c of ['status', 'outcome_reason', 'input_tokens', 'output_tokens', 'cost_usd']) {
+      expect(names).toContain(c);
+    }
+  });
+
+  it('005 adds the status + spend columns to rollup_daily', async () => {
+    const client = freshClient();
+    await migrate(client);
+    const cols = await client.execute("SELECT name FROM pragma_table_info('rollup_daily')");
+    const names = cols.rows.map((r) => String(r.name));
+    for (const c of [
+      'n_ok',
+      'n_error',
+      'n_aborted',
+      'sum_cost_usd',
+      'sum_input_tokens',
+      'sum_output_tokens',
+    ]) {
       expect(names).toContain(c);
     }
   });

@@ -1,7 +1,7 @@
 import type { Client } from '@libsql/client';
 import { dayBounds, yesterdayUtc } from '@/lib/dates';
 import { safeEqual } from '@/lib/timingSafeCompare';
-import { OUTCOMES, type Outcome } from '@/ingest/schema';
+import { OUTCOMES, STATUSES, type Outcome, type Status } from '@/ingest/schema';
 
 export { yesterdayUtc } from '@/lib/dates';
 
@@ -9,10 +9,18 @@ export type RollupSummary = {
   source: string;
   day: string;
   events: number;
+  // Legacy ask outcome breakdown (kept for the ask dashboards).
   ok: number;
   retrieval_failed: number;
   stream_failed: number;
   aborted: number;
+  // Universal status axis + spend (every event type contributes these).
+  n_ok: number;
+  n_error: number;
+  n_aborted: number;
+  sum_cost_usd: number | null;
+  sum_input_tokens: number | null;
+  sum_output_tokens: number | null;
   p50_total_ms: number | null;
   p95_total_ms: number | null;
   p99_total_ms: number | null;
@@ -33,6 +41,10 @@ function emptyOutcomeCounts(): Record<Outcome, number> {
   return { ok: 0, retrieval_failed: 0, stream_failed: 0, aborted: 0 };
 }
 
+function emptyStatusCounts(): Record<Status, number> {
+  return { ok: 0, error: 0, aborted: 0 };
+}
+
 async function sourcesForDay(client: Client, day: string): Promise<string[]> {
   const { startIso, endIso } = dayBounds(day);
   const res = await client.execute({
@@ -45,7 +57,8 @@ async function sourcesForDay(client: Client, day: string): Promise<string[]> {
 async function aggregateSource(client: Client, source: string, day: string): Promise<RollupSummary | null> {
   const { startIso, endIso } = dayBounds(day);
   const res = await client.execute({
-    sql: `SELECT outcome, total_ms, first_token_ms, citation_count
+    sql: `SELECT outcome, status, total_ms, first_token_ms, citation_count,
+                 cost_usd, input_tokens, output_tokens
           FROM events
           WHERE source = ? AND ts >= ? AND ts <= ?`,
     args: [source, startIso, endIso],
@@ -56,13 +69,26 @@ async function aggregateSource(client: Client, source: string, day: string): Pro
   const firstTokens: number[] = [];
   const citations: number[] = [];
   const counts = emptyOutcomeCounts();
+  const statusCounts = emptyStatusCounts();
+  let costUsd: number | null = null;
+  let inputTokens: number | null = null;
+  let outputTokens: number | null = null;
 
   for (const row of res.rows) {
     const outcome = String(row.outcome);
     if ((OUTCOMES as readonly string[]).includes(outcome)) counts[outcome as Outcome] += 1;
+    const status = row.status == null ? null : String(row.status);
+    if (status != null && (STATUSES as readonly string[]).includes(status)) {
+      statusCounts[status as Status] += 1;
+    }
     if (row.total_ms != null) totals.push(Number(row.total_ms));
     if (row.first_token_ms != null) firstTokens.push(Number(row.first_token_ms));
     if (row.citation_count != null) citations.push(Number(row.citation_count));
+    // Sums stay null until at least one row carries the value, so "no token data"
+    // reads as null (a gap), not a misleading 0.
+    if (row.cost_usd != null) costUsd = (costUsd ?? 0) + Number(row.cost_usd);
+    if (row.input_tokens != null) inputTokens = (inputTokens ?? 0) + Number(row.input_tokens);
+    if (row.output_tokens != null) outputTokens = (outputTokens ?? 0) + Number(row.output_tokens);
   }
 
   const avg = citations.length === 0 ? null : citations.reduce((a, b) => a + b, 0) / citations.length;
@@ -75,6 +101,12 @@ async function aggregateSource(client: Client, source: string, day: string): Pro
     retrieval_failed: counts.retrieval_failed,
     stream_failed: counts.stream_failed,
     aborted: counts.aborted,
+    n_ok: statusCounts.ok,
+    n_error: statusCounts.error,
+    n_aborted: statusCounts.aborted,
+    sum_cost_usd: costUsd,
+    sum_input_tokens: inputTokens,
+    sum_output_tokens: outputTokens,
     p50_total_ms: percentile(totals, 0.5),
     p95_total_ms: percentile(totals, 0.95),
     p99_total_ms: percentile(totals, 0.99),
@@ -89,10 +121,11 @@ async function writeRollup(client: Client, r: RollupSummary): Promise<void> {
   await client.execute({
     sql: `INSERT OR REPLACE INTO rollup_daily (
       source, day, events, ok, retrieval_failed, stream_failed, aborted,
+      n_ok, n_error, n_aborted, sum_cost_usd, sum_input_tokens, sum_output_tokens,
       p50_total_ms, p95_total_ms, p99_total_ms,
       p50_first_token_ms, p95_first_token_ms, p99_first_token_ms,
       avg_citations
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     args: [
       r.source,
       r.day,
@@ -101,6 +134,12 @@ async function writeRollup(client: Client, r: RollupSummary): Promise<void> {
       r.retrieval_failed,
       r.stream_failed,
       r.aborted,
+      r.n_ok,
+      r.n_error,
+      r.n_aborted,
+      r.sum_cost_usd,
+      r.sum_input_tokens,
+      r.sum_output_tokens,
       r.p50_total_ms,
       r.p95_total_ms,
       r.p99_total_ms,
