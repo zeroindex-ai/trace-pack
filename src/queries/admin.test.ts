@@ -119,7 +119,7 @@ describe('questionClusters', () => {
     await migrate(client);
   });
 
-  it('groups by question_hash and ranks by count', async () => {
+  it('groups by dedup_hash and ranks by count', async () => {
     await seed(client, [
       event('2026-05-14T01:00:00.000Z', { question: 'common q' }),
       event('2026-05-14T02:00:00.000Z', { question: 'common q' }),
@@ -150,11 +150,11 @@ describe('eventById', () => {
     expect(await eventById(client, 999)).toBeNull();
   });
 
-  it('returns full detail row including raw_json and question_hash', async () => {
+  it('returns full detail row including raw_json and dedup_hash', async () => {
     await seed(client, [event('2026-05-14T01:00:00.000Z')]);
     const detail = await eventById(client, 1);
     expect(detail).not.toBeNull();
-    expect(detail?.question_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(detail?.dedup_hash).toMatch(/^[0-9a-f]{64}$/);
     expect(detail?.raw_json).toContain('ask-zeroindex');
   });
 });

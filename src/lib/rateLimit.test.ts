@@ -80,14 +80,29 @@ describe('checkRateLimit (in-memory libsql)', () => {
     expect(b1.allowed).toBe(true);
   });
 
-  it('does not over-allow under a concurrent same-key burst (atomic consume)', async () => {
-    // Capacity 1, frozen clock (no refill), 8 simultaneous requests on one key.
-    // The pre-fix SELECT-then-write let interleaved requests each read the full
-    // bucket and all pass; the guarded atomic UPDATE admits exactly one.
-    const opts = { now: () => 1_000_000, capacity: 1, refillPerSec: 1 };
-    const results = await Promise.all(
-      Array.from({ length: 8 }, () => checkRateLimit(client, 'ip:burst', opts))
-    );
-    expect(results.filter((r) => r.allowed)).toHaveLength(1);
+  it('never over-allows past capacity under a concurrent same-key burst', async () => {
+    // Fire N requests at one key in a single Promise.all so they are dispatched
+    // concurrently from JS, sharing one in-memory bucket, and assert the total
+    // admitted never exceeds capacity. The pre-fix SELECT-then-write let
+    // interleaved requests each read the full bucket and all pass; the guarded
+    // atomic UPDATE admits at most `capacity`.
+    //
+    // HONESTY NOTE: libsql's :memory: client serializes statements on a single
+    // connection, so although the calls are launched in parallel they execute
+    // one-at-a-time. This therefore proves the single-statement SQL guard
+    // (refill + `>= 1` check + decrement in one UPDATE) is correct and admits
+    // no more than capacity — it does NOT exercise true OS-level write
+    // concurrency. That last mile is what SQLite's single-writer lock covers in
+    // production (see rateLimit.ts), which can't be reliably reproduced here.
+    for (const capacity of [1, 5]) {
+      await client.execute('DELETE FROM rate_limit_buckets');
+      const opts = { now: () => 1_000_000, capacity, refillPerSec: 1 };
+      const results = await Promise.all(
+        Array.from({ length: 16 }, () => checkRateLimit(client, 'ip:burst', opts))
+      );
+      const allowed = results.filter((r) => r.allowed).length;
+      expect(allowed).toBe(capacity);
+      expect(allowed).toBeLessThanOrEqual(capacity);
+    }
   });
 });
