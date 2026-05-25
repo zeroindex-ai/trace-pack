@@ -4,9 +4,13 @@ export type EventRow = {
   id: number;
   source: string;
   ts: string;
+  event: string;
   model: string | null;
   question: string | null;
   outcome: string;
+  status: string;
+  outcome_reason: string | null;
+  cost_usd: number | null;
   citation_count: number | null;
   retrieval_ms: number | null;
   first_token_ms: number | null;
@@ -17,6 +21,10 @@ export type EventRow = {
 export type EventDetail = EventRow & {
   question_hash: string;
   retrieved_ids: string | null;
+  input_tokens: number | null;
+  output_tokens: number | null;
+  cache_creation_input_tokens: number | null;
+  cache_read_input_tokens: number | null;
   raw_json: string;
 };
 
@@ -38,7 +46,7 @@ export type Neighbors = {
 };
 
 const SELECT_COLUMNS = `
-  id, source, ts, model, question, outcome,
+  id, source, ts, event, model, question, outcome, status, outcome_reason, cost_usd,
   citation_count, retrieval_ms, first_token_ms, total_ms, error_message
 `;
 
@@ -124,6 +132,11 @@ export async function eventById(client: Client, id: number): Promise<EventDetail
     ...rowToEvent(r),
     question_hash: String(r.dedup_hash), // column renamed in 004; field kept for the ask detail view
     retrieved_ids: r.retrieved_ids == null ? null : String(r.retrieved_ids),
+    input_tokens: r.input_tokens == null ? null : Number(r.input_tokens),
+    output_tokens: r.output_tokens == null ? null : Number(r.output_tokens),
+    cache_creation_input_tokens:
+      r.cache_creation_input_tokens == null ? null : Number(r.cache_creation_input_tokens),
+    cache_read_input_tokens: r.cache_read_input_tokens == null ? null : Number(r.cache_read_input_tokens),
     raw_json: String(r.raw_json),
   };
 }
@@ -153,9 +166,13 @@ function rowToEvent(r: Row): EventRow {
     id: Number(r.id),
     source: String(r.source),
     ts: String(r.ts),
+    event: String(r.event),
     model: r.model == null ? null : String(r.model),
     question: r.question == null ? null : String(r.question),
     outcome: String(r.outcome),
+    status: r.status == null ? '' : String(r.status),
+    outcome_reason: r.outcome_reason == null ? null : String(r.outcome_reason),
+    cost_usd: r.cost_usd == null ? null : Number(r.cost_usd),
     citation_count: r.citation_count == null ? null : Number(r.citation_count),
     retrieval_ms: r.retrieval_ms == null ? null : Number(r.retrieval_ms),
     first_token_ms: r.first_token_ms == null ? null : Number(r.first_token_ms),

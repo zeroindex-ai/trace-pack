@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { db } from '@/db/client';
-import { fmtMs, fmtTs } from '@/lib/format';
+import { fmtInt, fmtMs, fmtTs, fmtUsd } from '@/lib/format';
 import { eventById, neighbors } from '@/queries/admin';
 
 export const dynamic = 'force-dynamic';
@@ -32,14 +32,16 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
       <section className="pt-10 pb-6">
         <div className="label mb-3">
           <Link href="/admin" className="subtle">
-            ← Admin
+            ← Admin • Traces
           </Link>
         </div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight">
           Event <span className="muted-2">#{event.id}</span>
         </h1>
         <p className="mt-4 muted text-base leading-relaxed event-meta">
-          <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span>
+          <span className={`outcome-tag outcome-${event.status}`}>{event.outcome}</span>
+          <span className="meta-sep">·</span>
+          <code className="chip">{event.event}</code>
           <span className="meta-sep">·</span>
           <code className="chip">{event.source}</code>
           <span className="meta-sep">·</span>
@@ -66,20 +68,33 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
           <dl className="kv-list">
             <dt>id</dt> <dd className="mono">{event.id}</dd>
             <dt>source</dt> <dd className="mono">{event.source}</dd>
+            <dt>event</dt> <dd className="mono">{event.event}</dd>
             <dt>ts</dt> <dd className="mono">{event.ts}</dd>
             <dt>model</dt> <dd className="mono">{event.model ?? '—'}</dd>
-            <dt>outcome</dt>{' '}
+            <dt>status</dt>{' '}
             <dd>
-              <span className={`outcome-tag outcome-${event.outcome}`}>{event.outcome}</span>
+              <span className={`outcome-tag outcome-${event.status}`}>{event.status}</span>
             </dd>
-            <dt>question_hash</dt> <dd className="mono">{event.question_hash}</dd>
-            <dt>question</dt> <dd>{event.question ?? '—'}</dd>
-            <dt>retrieved_ids</dt> <dd className="mono">{event.retrieved_ids ?? '—'}</dd>
-            <dt>citation_count</dt> <dd className="mono">{event.citation_count ?? '—'}</dd>
-            <dt>retrieval_ms</dt> <dd className="mono">{fmtMs(event.retrieval_ms)}</dd>
-            <dt>first_token_ms</dt> <dd className="mono">{fmtMs(event.first_token_ms)}</dd>
+            <dt>outcome</dt> <dd className="mono">{event.outcome}</dd>
+            <dt>outcome_reason</dt> <dd className="mono">{event.outcome_reason ?? '—'}</dd>
             <dt>total_ms</dt> <dd className="mono">{fmtMs(event.total_ms)}</dd>
+            <dt>cost_usd</dt> <dd className="mono">{fmtUsd(event.cost_usd)}</dd>
+            <dt>input_tokens</dt> <dd className="mono">{fmtInt(event.input_tokens)}</dd>
+            <dt>output_tokens</dt> <dd className="mono">{fmtInt(event.output_tokens)}</dd>
+            <dt>cache_creation_input_tokens</dt>{' '}
+            <dd className="mono">{fmtInt(event.cache_creation_input_tokens)}</dd>
+            <dt>cache_read_input_tokens</dt> <dd className="mono">{fmtInt(event.cache_read_input_tokens)}</dd>
             <dt>error_message</dt> <dd>{event.error_message ?? '—'}</dd>
+            <dt>dedup_hash</dt> <dd className="mono">{event.question_hash}</dd>
+            {event.event === 'ask' && (
+              <>
+                <dt>question</dt> <dd>{event.question ?? '—'}</dd>
+                <dt>retrieved_ids</dt> <dd className="mono">{event.retrieved_ids ?? '—'}</dd>
+                <dt>citation_count</dt> <dd className="mono">{fmtInt(event.citation_count)}</dd>
+                <dt>retrieval_ms</dt> <dd className="mono">{fmtMs(event.retrieval_ms)}</dd>
+                <dt>first_token_ms</dt> <dd className="mono">{fmtMs(event.first_token_ms)}</dd>
+              </>
+            )}
           </dl>
         </div>
       </section>
