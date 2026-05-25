@@ -81,7 +81,12 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 <a className="subtle" href="https://github.com/zeroindex-ai/trace-pack">
                   Source
                 </a>
-                <a className="subtle" href="mailto:hello@zeroindex.ai">
+                <a
+                  className="subtle"
+                  href="mailto:hello@zeroindex.ai"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   hello@zeroindex.ai
                 </a>
                 <a className="subtle" href="https://zeroindex.ai">
