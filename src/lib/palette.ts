@@ -1,7 +1,7 @@
 /**
  * Color tokens shared between CSS and Recharts.
  * Mirrors the :root custom properties in app/globals.css, which mirror
- * zeroindexai/STYLE_GUIDE.md §1 (with two dashboard-only extensions).
+ * zeroindex-site/STYLE_GUIDE.md §1 (with two dashboard-only extensions).
  */
 export const palette = {
   ink: '#18181b',

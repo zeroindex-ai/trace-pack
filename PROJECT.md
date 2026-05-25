@@ -553,7 +553,7 @@ Known P2-minor / P3 cleanups, tracked rather than chased.
 - **Companion project (pre-prod correctness):** [`zeroindex-ai/eval-pack`](https://github.com/zeroindex-ai/eval-pack)
 - **First consumer:** [`zeroindex-ai/ask-zeroindex`](https://github.com/zeroindex-ai/ask-zeroindex)
 - **Eval reports site:** [`zeroindex-ai/evals-site`](https://github.com/zeroindex-ai/evals-site) — `evals.zeroindex.ai`
-- **Website repo:** [`zeroindex-ai/zeroindexai`](https://github.com/zeroindex-ai/zeroindexai)
+- **Website:** [zeroindex.ai](https://zeroindex.ai) — Astro site (source in the private `zeroindex-site` repo)
 - **This repo:** [`zeroindex-ai/trace-pack`](https://github.com/zeroindex-ai/trace-pack)
 - **Live site:** `traces.zeroindex.ai`
 - **v0.2 design spec:** [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md)
