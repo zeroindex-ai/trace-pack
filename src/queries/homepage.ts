@@ -80,10 +80,10 @@ export async function dailyTraffic(
   const byDay = new Map<string, number>();
   for (const r of rollup.rows) byDay.set(String(r.day), Number(r.events));
 
-  const { startIso, endIso } = dayBounds(today);
+  const { startIso, nextDayStartIso } = dayBounds(today);
   const todayRow = await client.execute({
-    sql: 'SELECT COUNT(*) AS n FROM events WHERE source = ? AND ts >= ? AND ts <= ?',
-    args: [source, startIso, endIso],
+    sql: 'SELECT COUNT(*) AS n FROM events WHERE source = ? AND ts >= ? AND ts < ?',
+    args: [source, startIso, nextDayStartIso],
   });
   byDay.set(today, Number(todayRow.rows[0]?.n ?? 0));
 
@@ -114,11 +114,11 @@ export async function dailyOutcomes(
     });
   }
 
-  const { startIso, endIso } = dayBounds(today);
+  const { startIso, nextDayStartIso } = dayBounds(today);
   const todayRows = await client.execute({
     sql: `SELECT status, COUNT(*) AS n FROM events
-          WHERE source = ? AND ts >= ? AND ts <= ? GROUP BY status`,
-    args: [source, startIso, endIso],
+          WHERE source = ? AND ts >= ? AND ts < ? GROUP BY status`,
+    args: [source, startIso, nextDayStartIso],
   });
   const todayCounts = emptyStatuses();
   for (const r of todayRows.rows) {
@@ -161,10 +161,10 @@ export async function dailyLatencies(
     });
   }
 
-  const { startIso, endIso } = dayBounds(today);
+  const { startIso, nextDayStartIso } = dayBounds(today);
   const todayRows = await client.execute({
-    sql: 'SELECT total_ms, first_token_ms FROM events WHERE source = ? AND ts >= ? AND ts <= ?',
-    args: [source, startIso, endIso],
+    sql: 'SELECT total_ms, first_token_ms FROM events WHERE source = ? AND ts >= ? AND ts < ?',
+    args: [source, startIso, nextDayStartIso],
   });
   const totals: number[] = [];
   const firstTokens: number[] = [];
@@ -220,11 +220,11 @@ export async function dailySpend(
     });
   }
 
-  const { startIso, endIso } = dayBounds(today);
+  const { startIso, nextDayStartIso } = dayBounds(today);
   const todayRow = await client.execute({
     sql: `SELECT SUM(cost_usd) AS cost, SUM(input_tokens) AS inp, SUM(output_tokens) AS outp
-          FROM events WHERE source = ? AND ts >= ? AND ts <= ?`,
-    args: [source, startIso, endIso],
+          FROM events WHERE source = ? AND ts >= ? AND ts < ?`,
+    args: [source, startIso, nextDayStartIso],
   });
   const tr = todayRow.rows[0];
   byDay.set(today, {
@@ -245,14 +245,14 @@ export async function citationHistogram(
   days: number,
   now: Date = new Date()
 ): Promise<CitationBucket[]> {
-  const { startIso, endIso } = windowBounds(lastNDays(days, now));
+  const { startIso, nextDayStartIso } = windowBounds(lastNDays(days, now));
   const res = await client.execute({
     sql: `SELECT citation_count AS count, COUNT(*) AS frequency
           FROM events
-          WHERE source = ? AND ts >= ? AND ts <= ? AND citation_count IS NOT NULL
+          WHERE source = ? AND ts >= ? AND ts < ? AND citation_count IS NOT NULL
           GROUP BY citation_count
           ORDER BY citation_count`,
-    args: [source, startIso, endIso],
+    args: [source, startIso, nextDayStartIso],
   });
   return res.rows.map((r) => ({ count: Number(r.count), frequency: Number(r.frequency) }));
 }
@@ -264,11 +264,11 @@ export async function topRetrievedIds(
   limit: number,
   now: Date = new Date()
 ): Promise<RetrievedIdRow[]> {
-  const { startIso, endIso } = windowBounds(lastNDays(days, now));
+  const { startIso, nextDayStartIso } = windowBounds(lastNDays(days, now));
   const res = await client.execute({
     sql: `SELECT retrieved_ids FROM events
-          WHERE source = ? AND ts >= ? AND ts <= ? AND retrieved_ids IS NOT NULL`,
-    args: [source, startIso, endIso],
+          WHERE source = ? AND ts >= ? AND ts < ? AND retrieved_ids IS NOT NULL`,
+    args: [source, startIso, nextDayStartIso],
   });
   const counts = new Map<number, number>();
   for (const row of res.rows) {

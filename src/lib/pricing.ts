@@ -8,10 +8,11 @@ export const PRICES_AS_OF = '2026-05-24';
 
 type ModelPrice = { inputPer1M: number; outputPer1M: number };
 
-// Matched by substring against the lowercased model id, most specific first, so
-// dated/suffixed ids ('claude-sonnet-4-6', 'claude-sonnet-4-6-20250219', …) resolve.
-// Opus 4.5 dropped the Opus rate to $5/$25; 4.0/4.1 stay at the original $15/$75,
-// so the current-gen ids must be listed BEFORE the 'claude-opus-4' catch-all.
+// Matched by substring against the lowercased model id so dated/suffixed ids
+// ('claude-sonnet-4-6', 'claude-sonnet-4-6-20250219', …) resolve. The LONGEST
+// matching key wins (see priceFor), so table order is irrelevant — a broad
+// 'claude-opus-4' catch-all can never shadow the more specific 'claude-opus-4-5'.
+// Opus 4.5 dropped the Opus rate to $5/$25; 4.0/4.1 stay at the original $15/$75.
 const PRICES: ReadonlyArray<readonly [match: string, price: ModelPrice]> = [
   ['claude-opus-4-5', { inputPer1M: 5, outputPer1M: 25 }],
   ['claude-opus-4-6', { inputPer1M: 5, outputPer1M: 25 }],
@@ -41,10 +42,18 @@ export type TokenUsage = {
 export function priceFor(model: string | null | undefined): ModelPrice | null {
   if (!model) return null;
   const id = model.toLowerCase();
+  // Longest match wins: the most-specific matching key is authoritative
+  // regardless of table order, so a broad prefix can never silently shadow a
+  // more specific id (e.g. 'claude-opus-4-5' beats 'claude-opus-4').
+  let best: ModelPrice | null = null;
+  let bestLen = -1;
   for (const [match, price] of PRICES) {
-    if (id.includes(match)) return price;
+    if (id.includes(match) && match.length > bestLen) {
+      best = price;
+      bestLen = match.length;
+    }
   }
-  return null;
+  return best;
 }
 
 // USD cost for one request, or null when the model is unknown or no tokens are

@@ -30,7 +30,7 @@ export async function sourceOverview(
   if (first === undefined || today === undefined) {
     throw new Error('day window must contain at least one day');
   }
-  const { startIso: todayStart, endIso: todayEnd } = dayBounds(today);
+  const { startIso: todayStart, nextDayStartIso: todayNextStart } = dayBounds(today);
 
   type Acc = { events: number; errors: number; cost: number | null };
   const acc = new Map<string, Acc>();
@@ -63,8 +63,8 @@ export async function sourceOverview(
                  COUNT(*) AS events,
                  SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS errors,
                  SUM(cost_usd) AS cost
-          FROM events WHERE ts >= ? AND ts <= ? GROUP BY source`,
-    args: [todayStart, todayEnd],
+          FROM events WHERE ts >= ? AND ts < ? GROUP BY source`,
+    args: [todayStart, todayNextStart],
   });
   for (const r of live.rows) {
     bump(
