@@ -9,13 +9,13 @@ Companion to [`@zeroindex-ai/eval-pack`](https://github.com/zeroindex-ai/eval-pa
 
 ## Status
 
-v0.1 shipped. The dashboard serves live traffic from [`ask-zeroindex`](https://github.com/zeroindex-ai/ask-zeroindex) via the optional dual-write in its `logAsk` path. See [`PROJECT.md`](./PROJECT.md) for the full scope, architecture, public API contracts, and decision log.
+v0.2 shipped. v0.2 generalized the original `ask`-shaped model into a universal multi-app event core (a `ok`/`error`/`aborted` status axis, token counts, and a derived per-request `cost_usd`) with a source-aware UI, so trace-pack now observes any Claude app — not just RAG Q&A. It serves live traffic from multiple consumers (`ask-zeroindex`, `contract-lens`, intake-zero) via the optional dual-write in their telemetry paths. See [`PROJECT.md`](./PROJECT.md) for scope, architecture, and API contracts, and [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md) for the v0.2 model.
 
 ## How it works
 
-A consumer app POSTs a structured event per request to `POST /api/ingest` with a per-source bearer token. `trace-pack` stores the event, aggregates it into a daily rollup (cron at 00:15 UTC), and renders:
+A consumer app POSTs a structured event per request to `POST /api/ingest` with a per-source bearer token — either an `ask` event (the RAG Q&A shape) or a `GenericEvent` (any other app, carrying the universal status + token core). `trace-pack` derives cost at ingest, stores the event, aggregates it into a daily rollup (cron at 00:15 UTC), and renders:
 
-- **`/`** — public aggregate dashboard (5 charts: traffic, outcomes, latency p50/p95/p99, citation distribution, top retrieved chunks)
+- **`/`** — public, source-aware aggregate dashboard (traffic, status/outcomes, latency p50/p95/p99, spend/cost, plus the `ask`-specific citation distribution + top retrieved chunks for RAG sources)
 - **`/admin`** — auth-gated detail (events table with pagination + filter, error feed, question clusters)
 - **`/admin/[id]`** — single-event drill-down with prev/next neighbors
 
