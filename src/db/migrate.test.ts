@@ -1,4 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterEach, describe, it, expect } from 'vitest';
 import { createClient } from '@libsql/client';
 import { migrate } from './migrate';
 
@@ -91,5 +94,31 @@ describe('migrate', () => {
     });
     const res = await client.execute("SELECT status FROM events WHERE outcome = 'stream_failed'");
     expect(res.rows[0]?.status).toBe('error');
+  });
+
+  describe('transactional application', () => {
+    let dir: string;
+    afterEach(() => {
+      if (dir) rmSync(dir, { recursive: true, force: true });
+    });
+
+    it('rolls back a migration whose script fails partway and does not record it', async () => {
+      const client = freshClient();
+      dir = mkdtempSync(join(tmpdir(), 'tracepack-mig-'));
+      // First statement creates a table; the third references a missing table and
+      // throws mid-script. With per-file transactions the whole file rolls back.
+      writeFileSync(
+        join(dir, '001_partial.sql'),
+        'CREATE TABLE t (x INTEGER);\nINSERT INTO t VALUES (1);\nINSERT INTO does_not_exist VALUES (1);'
+      );
+
+      await expect(migrate(client, dir)).rejects.toThrow();
+
+      const tbl = await client.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='t'");
+      expect(tbl.rows).toHaveLength(0); // CREATE TABLE rolled back
+
+      const recorded = await client.execute('SELECT name FROM schema_migrations');
+      expect(recorded.rows.map((r) => String(r.name))).not.toContain('001_partial.sql');
+    });
   });
 });
