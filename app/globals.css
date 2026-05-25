@@ -310,6 +310,9 @@ code.chip {
   /* sticky header (~33px) + ~10 rows (~41px) + bottom padding */
   max-height: 455px;
   overflow-y: auto;
+  /* dense fixed-width grids exceed a phone's width — let them scroll sideways
+     rather than clip. Harmless on desktop (only engages when content overflows). */
+  overflow-x: auto;
   padding: 0 24px 8px;
 }
 /* the error feed usually has few rows; keep a floor (~header + 5 rows) so the
@@ -480,4 +483,25 @@ code.chip {
   overflow-x: auto;
   white-space: pre;
   margin: 0;
+}
+
+/* ---- Mobile (<= 640px) --------------------------------------------------
+   The dashboard is desktop-first; on phones we keep it usable, not pretty.
+   Dense grids scroll sideways (see .table-scroll overflow-x); here we stack
+   the key/value rail and tighten chrome padding so content gets more width. */
+@media (max-width: 640px) {
+  .card {
+    padding: 18px 16px;
+  }
+  .table-scroll {
+    padding: 0 16px 8px;
+  }
+  /* a 180px label rail leaves no room for values on a phone — stack instead */
+  .kv-list {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .kv-list dt {
+    padding-top: 10px;
+  }
 }
