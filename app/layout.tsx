@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
+import { HeaderNav } from './HeaderNav';
 
 export const metadata: Metadata = {
   title: 'Traces · ZeroIndex',
@@ -57,10 +58,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
                 </svg>
                 <span className="brand-name">ZeroIndex</span>
               </a>
-              <a href="https://zeroindex.ai" className="btn-primary">
-                <span aria-hidden="true">&larr;</span>
-                zeroindex.ai
-              </a>
+              <HeaderNav appName="Traces" />
             </div>
           </div>
         </header>
