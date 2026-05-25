@@ -250,9 +250,9 @@ export default async function AdminPage({
                 </thead>
                 <tbody>
                   {clusters.map((c: ClusterRow) => (
-                    <tr key={c.question_hash}>
+                    <tr key={c.dedup_hash}>
                       <td className="num-cell">{c.count}</td>
-                      <td className="num-cell">{fmtHash(c.question_hash)}</td>
+                      <td className="num-cell">{fmtHash(c.dedup_hash)}</td>
                       <td className="ts">{fmtTs(c.most_recent_ts)}</td>
                       <td className="question-wide">{c.sample_question}</td>
                     </tr>

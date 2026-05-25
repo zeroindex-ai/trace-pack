@@ -19,7 +19,7 @@ export type EventRow = {
 };
 
 export type EventDetail = EventRow & {
-  question_hash: string;
+  dedup_hash: string;
   retrieved_ids: string | null;
   input_tokens: number | null;
   output_tokens: number | null;
@@ -29,7 +29,7 @@ export type EventDetail = EventRow & {
 };
 
 export type ClusterRow = {
-  question_hash: string;
+  dedup_hash: string;
   count: number;
   most_recent_ts: string;
   sample_question: string;
@@ -98,8 +98,7 @@ export async function questionClusters(
   const startIso = start.toISOString();
 
   // The column is `dedup_hash` (renamed in 004); for `ask` events it is the
-  // question hash, so this clustering view — an ask-only feature — surfaces it
-  // under the `question_hash` field it has always used.
+  // question hash, surfaced here as `dedup_hash` to match the column name.
   const res = await client.execute({
     sql: `SELECT dedup_hash,
                  COUNT(*) AS count,
@@ -114,7 +113,7 @@ export async function questionClusters(
   });
 
   return res.rows.map((r) => ({
-    question_hash: String(r.dedup_hash),
+    dedup_hash: String(r.dedup_hash),
     count: Number(r.count),
     most_recent_ts: String(r.most_recent_ts),
     sample_question: r.sample_question == null ? '' : String(r.sample_question),
@@ -130,7 +129,7 @@ export async function eventById(client: Client, id: number): Promise<EventDetail
   if (!r) return null;
   return {
     ...rowToEvent(r),
-    question_hash: String(r.dedup_hash), // column renamed in 004; field kept for the ask detail view
+    dedup_hash: String(r.dedup_hash),
     retrieved_ids: r.retrieved_ids == null ? null : String(r.retrieved_ids),
     input_tokens: r.input_tokens == null ? null : Number(r.input_tokens),
     output_tokens: r.output_tokens == null ? null : Number(r.output_tokens),

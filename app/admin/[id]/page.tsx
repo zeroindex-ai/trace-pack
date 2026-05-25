@@ -85,7 +85,7 @@ export default async function EventDetailPage({ params }: { params: Promise<{ id
             <dd className="mono">{fmtInt(event.cache_creation_input_tokens)}</dd>
             <dt>cache_read_input_tokens</dt> <dd className="mono">{fmtInt(event.cache_read_input_tokens)}</dd>
             <dt>error_message</dt> <dd>{event.error_message ?? '—'}</dd>
-            <dt>dedup_hash</dt> <dd className="mono">{event.question_hash}</dd>
+            <dt>dedup_hash</dt> <dd className="mono">{event.dedup_hash}</dd>
             {event.event === 'ask' && (
               <>
                 <dt>question</dt> <dd>{event.question ?? '—'}</dd>
