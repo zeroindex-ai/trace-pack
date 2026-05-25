@@ -1,6 +1,6 @@
 # trace-pack — Project Documentation
 
-> **Status: shipped v0.1** — public dashboard live at [traces.zeroindex.ai](https://traces.zeroindex.ai), serving real `ask-zeroindex` traffic via the optional dual-write in its `logAsk` path.
+> **Status: shipped v0.2** — public dashboard live at [traces.zeroindex.ai](https://traces.zeroindex.ai). v0.2 generalized the original `ask`-shaped model into a universal multi-app event core (status axis + tokens + cost) with a source-aware UI; it now observes multiple ZeroIndex Claude apps (`ask-zeroindex`, `contract-lens`, intake-zero) via their dual-write paths, not just the one RAG consumer. The v0.2 model is specified in [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md) (marked shipped); the sections below were written for v0.1 and are annotated where v0.2 changed them.
 
 This document captures the scope, strategic decisions, architecture, public contracts, distribution shape, and ordered work list for `trace-pack`. It exists to:
 
@@ -16,6 +16,8 @@ This document captures the scope, strategic decisions, architecture, public cont
 
 A minimal, opinionated LLM observability dashboard for small Claude-based applications. A consumer app POSTs a structured event per request; `trace-pack` stores, aggregates, and renders.
 
+> **v0.2 (shipped 2026-05-23–25).** The model below started life as the single, `ask`-shaped RAG schema. v0.2 split it into a **universal core** every Claude app shares — a coarse `status` axis (`ok`/`error`/`aborted`), input/output/cache token counts, and a derived `cost_usd` — plus a per-event-type extension (`ask` is now just one event type; any other app sends a `GenericEvent`). The dashboard is now **source-aware** (multiple consumers, a source selector) and carries a **cost axis**. `docs/v0.2-multi-app-design.md` is the authoritative spec for the generalized schema, ingest contract, and UI; the v0.1-framed prose in §4–§6 below is kept for the reasoning and annotated where v0.2 superseded it.
+
 The companion to [`eval-pack`](https://github.com/zeroindex-ai/eval-pack):
 
 - `eval-pack` = **pre-prod correctness** (file-producing library, run in CI)
@@ -28,8 +30,8 @@ Where `eval-pack` is a library you import, `trace-pack` is a hosted dashboard yo
 The eval methodology (`eval-pack`) tells you whether your LLM app gets answers right on a curated golden set. It says nothing about what real users actually ask, how latency behaves under real load, what fraction of requests fail in production, or which retrieved chunks dominate. Most teams glue this together from a logging vendor, a chart library, and three SQL queries — but the _interesting_ metrics for a small Claude app are different from those any generic APM gives you (first-token latency, citation count distribution, retrieved-id heatmap).
 
 - **Lifted from a real consumer.** The first consumer is [`ask-zeroindex`](https://github.com/zeroindex-ai/ask-zeroindex), which already emits the exact event shape this project ingests (see `app/api/ask` `logAsk` in that repo). v0.1 work is generalization, storage, and presentation — not greenfield instrumentation.
-- **Opinionated, not generic.** This is not an OTel collector. It's a dashboard with a fixed schema, four pages, and a small set of metrics chosen to be useful for a Claude-app author specifically.
-- **Multi-tenant ready, single-tenant scoped.** The data model carries a `source` tenant key from day one. The v0.1 UI only renders one source — but adding a second consumer doesn't need a schema migration.
+- **Opinionated, not generic.** This is not an OTel collector. It's a dashboard with a defined event schema (a universal core + an `ask` extension, not arbitrary spans), a handful of pages, and a small set of metrics chosen to be useful for a Claude-app author specifically.
+- **Multi-tenant ready, and now multi-tenant in the UI.** The data model carried a `source` tenant key from day one; v0.1 rendered a single source. As of v0.2 the UI is source-aware (multiple consumers + a source selector) — and, as designed, adding consumers needed no schema migration of the core key.
 
 ### Goals & success criteria for v0.1
 
@@ -45,8 +47,8 @@ The eval methodology (`eval-pack`) tells you whether your LLM app gets answers r
 ### Out of scope (for v0.1)
 
 - **Real-time / live-tail view.** Daily rollup + on-demand reload covers current traffic. Live-tail lands when a consumer's volume warrants it.
-- **Multi-tenant UI.** Schema supports many sources; UI shows one. A simple `source` selector arrives when the second consumer ships.
-- **Cost tracking** (`inputTokens`, `outputTokens`, $ per request). The current event shape doesn't carry tokens. Additive when consumers start emitting them.
+- ~~**Multi-tenant UI.**~~ **Shipped in v0.2** — the source selector arrived with the second consumer, as planned.
+- ~~**Cost tracking** (`inputTokens`, `outputTokens`, $ per request).~~ **Shipped in v0.2** — the universal core now carries input/output/cache tokens and a derived `cost_usd` (`src/lib/pricing.ts`).
 - **Alerting / paging.** Threshold breaches → notifications belong in v0.2 once we know which thresholds matter in practice.
 - **Full OpenTelemetry tracing** (spans, parent IDs, distributed propagation). A flat event-per-request model is enough for the current consumer; OTel arrives only if a consumer's shape needs it.
 - **Log-drain ingestion.** See §2 — direct POST is the chosen path for v0.1.
@@ -96,7 +98,7 @@ Load-bearing decisions, documented because the _why_ often outlasts the _what_.
 | **Storage of question text** | Stored on the server, never rendered on the public homepage, rendered on the auth-gated admin view                                                                                       | The privacy-sensitive content stays behind auth; the public face is aggregates only.                                                                                                                                                                                                                                |
 | **Aggregation strategy**     | Daily rollup table refreshed by Vercel Cron at 00:15 UTC + on-the-fly aggregation for "today"                                                                                            | Homepage SSR reads one row per visible day from `rollup_daily` + a single aggregation query for the in-flight day. Avoids percentile-over-30-days queries on every page load.                                                                                                                                       |
 | **Percentile computation**   | JS percentile computation over rows pulled for the day window — simpler than SQLite's lack of native percentile UDF, fine at v0.1 traffic levels.                                        | Honest p50/p95/p99 without external tools. At Turso's scale, fine.                                                                                                                                                                                                                                                  |
-| **Idempotency**              | `(source, ts, question_hash)` natural key with `INSERT OR IGNORE`                                                                                                                        | Duplicate replays from a consumer retry don't create double-count. Not strict idempotency — collisions are rare and benign.                                                                                                                                                                                         |
+| **Idempotency**              | `(source, ts, dedup_hash)` natural key with `INSERT OR IGNORE`                                                                                                                        | Duplicate replays from a consumer retry don't create double-count. Not strict idempotency — collisions are rare and benign.                                                                                                                                                                                         |
 | **Backfill path**            | One-shot script reads `vercel logs --json`, filters `event=ask`, POSTs to `/api/ingest`                                                                                                  | The current consumer's history lives in Vercel logs. Backfill makes the dashboard non-empty on day one.                                                                                                                                                                                                             |
 | **Rate limiting**            | Turso-backed token bucket on `/api/ingest`, checked before any parse/auth work. Per-IP key (UA+lang fingerprint fallback), capacity 60, refill 1 token/sec. Returns 429 + `Retry-After`. | A public POST must not let a single origin burn CPU on parse + Zod + token-compare or grow `events` unbounded. Generous enough for legitimate server-to-server trace volume; throttles single-origin floods. Distributed/botnet floods are out of scope for v0.1 — those want an edge/WAF limit, not an app bucket. |
 
@@ -154,8 +156,8 @@ Consumer logAsk()
    │
    ├─→ Zod-validate envelope; reject 400 on bad shape
    ├─→ Verify bearer token against source's expected token
-   ├─→ Compute question_hash = sha256(question)
-   ├─→ INSERT OR IGNORE into events (PK includes question_hash + ts)
+   ├─→ Compute dedup_hash = sha256(question)
+   ├─→ INSERT OR IGNORE into events (PK includes dedup_hash + ts)
    └─→ 204 No Content
 ```
 
@@ -195,30 +197,54 @@ Authorization: Bearer <per-source-token>
 }
 ```
 
+The body above is an **`ask`-type event** — still valid verbatim, so `ask-zeroindex` needed no wire change. As of v0.2 it is one of two shapes the endpoint accepts.
+
 Response: `204 No Content` on success, `400` on schema violation, `401` on bad/missing token, `502` on storage failure.
 
-Zod schema (informal):
+Zod schema (v0.2 — a union of `ask` and everything else; authoritative source is `src/ingest/schema.ts`):
 
 ```ts
-export const IngestEvent = z
-  .object({
-    source: z.string().min(1).max(64),
-    event: z.literal('ask'), // v0.1: only 'ask'
-    ts: z.string().datetime(),
-    model: z.string().min(1),
-    question: z.string().max(2000),
-    outcome: z.enum(['ok', 'retrieval_failed', 'stream_failed', 'aborted']),
-    retrievedIds: z.array(z.number().int()).default([]),
-    citationCount: z.number().int().min(0),
-    retrievalMs: z.number().int().min(0),
-    firstTokenMs: z.number().int().nullable(),
-    totalMs: z.number().int().min(0),
-    errorMessage: z.string().nullable().optional(),
-  })
-  .passthrough(); // unknown fields → raw_json
+// Universal core every event carries (the v0.2 cost axis lives here).
+const coreFields = {
+  source: z.string().min(1).max(64),
+  ts: z.string().datetime(),
+  model: z.string().min(1).nullable().optional(),
+  inputTokens: z.number().int().min(0).nullable().optional(),
+  outputTokens: z.number().int().min(0).nullable().optional(),
+  cacheCreationInputTokens: z.number().int().min(0).nullable().optional(),
+  cacheReadInputTokens: z.number().int().min(0).nullable().optional(),
+  totalMs: z.number().int().min(0).nullable().optional(),
+  errorMessage: z.string().nullable().optional(),
+};
+
+// The RAG Q&A extension — unchanged on the wire from v0.1.
+export const AskEvent = z.object({
+  ...coreFields,
+  event: z.literal('ask'),
+  model: z.string().min(1),                 // tightened: ask always has these
+  totalMs: z.number().int().min(0),
+  outcome: z.enum(['ok', 'retrieval_failed', 'stream_failed', 'aborted']),
+  question: z.string().min(1).max(2000),
+  retrievedIds: z.array(z.number().int()).default([]),
+  citationCount: z.number().int().min(0),
+  retrievalMs: z.number().int().min(0),
+  firstTokenMs: z.number().int().min(0).nullable(),
+}).passthrough();
+
+// Any other app: sends the universal `status` directly + an optional reason.
+export const GenericEvent = z.object({
+  ...coreFields,
+  event: z.string().min(1).max(64).refine((e) => e !== 'ask'),
+  status: z.enum(['ok', 'error', 'aborted']),
+  outcomeReason: z.string().min(1).max(120).nullable().optional(),
+  idempotencyKey: z.string().min(1).max(200).optional(),
+}).passthrough();
+
+// Union (not discriminatedUnion): the non-ask discriminator is open (any string ≠ 'ask').
+export const IngestEvent = z.union([AskEvent, GenericEvent]);
 ```
 
-The `passthrough()` is load-bearing: it's the forward-compatibility guarantee. Consumers can add fields without coordinating with `trace-pack`.
+The `passthrough()` is load-bearing: it's the forward-compatibility guarantee. Consumers can add fields without coordinating with `trace-pack`; per-type fields ride along in `raw_json` and are promoted to columns only when a chart needs them. An `ask` event's `status` is derived from its `outcome` (`*_failed → error`); other events send `status` directly.
 
 ### Cron: `GET /api/rollup`
 
@@ -228,16 +254,27 @@ Vercel Cron–invoked once per day at 00:15 UTC (Vercel Cron issues `GET`). Aggr
 
 ## 5. Storage schema
 
+The authoritative DDL is `src/db/migrations/` (001–005; see §7). The block below is the **current (v0.2) shape** — the v0.1 `events` table plus the universal core that migration `004` added. v0.2 columns are marked.
+
 ```sql
 CREATE TABLE events (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
   source          TEXT NOT NULL,
-  event           TEXT NOT NULL,           -- v0.1: always 'ask'
+  event           TEXT NOT NULL,           -- 'ask' or any other event type (v0.2)
   ts              TEXT NOT NULL,           -- ISO 8601 UTC
   model           TEXT,
-  question        TEXT,
-  question_hash   TEXT NOT NULL,
-  outcome         TEXT NOT NULL,
+  question        TEXT,                    -- ask-only; NULL for other event types
+  dedup_hash      TEXT NOT NULL,           -- renamed from question_hash in 004
+  outcome         TEXT,                    -- ask vocabulary; NULL for non-ask
+  -- v0.2 universal core (migration 004):
+  status          TEXT,                    -- coarse axis: ok / error / aborted
+  outcome_reason  TEXT,                    -- app-specific reason (nullable)
+  input_tokens               INTEGER,
+  output_tokens              INTEGER,
+  cache_creation_input_tokens INTEGER,
+  cache_read_input_tokens     INTEGER,
+  cost_usd        REAL,                    -- derived at ingest (src/lib/pricing.ts)
+  -- ask extension fields:
   retrieved_ids   TEXT,                    -- JSON array, opaque
   citation_count  INTEGER,
   retrieval_ms    INTEGER,
@@ -245,11 +282,11 @@ CREATE TABLE events (
   total_ms        INTEGER,
   error_message   TEXT,
   raw_json        TEXT NOT NULL,           -- the full POSTed body verbatim
-  UNIQUE (source, ts, question_hash)       -- idempotency on retries
+  UNIQUE (source, ts, dedup_hash)          -- idempotency on retries
 );
 CREATE INDEX idx_events_source_ts        ON events (source, ts DESC);
 CREATE INDEX idx_events_source_outcome   ON events (source, outcome);
-CREATE INDEX idx_events_source_hash      ON events (source, question_hash);
+CREATE INDEX idx_events_source_hash      ON events (source, dedup_hash);
 
 CREATE TABLE rollup_daily (
   source              TEXT NOT NULL,
@@ -266,23 +303,34 @@ CREATE TABLE rollup_daily (
   p95_first_token_ms  INTEGER,
   p99_first_token_ms  INTEGER,
   avg_citations       REAL,
+  -- v0.2 universal status + spend rollup (migration 005):
+  n_ok                INTEGER,
+  n_error             INTEGER,
+  n_aborted           INTEGER,
+  sum_cost_usd        REAL,
+  sum_input_tokens    INTEGER,
+  sum_output_tokens   INTEGER,
   PRIMARY KEY (source, day)
 );
 ```
+
+> **v0.2 note.** The `ok`/`retrieval_failed`/`stream_failed`/`aborted` and `avg_citations`/`first_token` columns above are the `ask`-specific rollup; v0.2 added the universal `n_ok`/`n_error`/`n_aborted` status counts and the `sum_cost_usd`/`sum_*_tokens` spend dimension (migration 005) so the multi-app overview + spend views read precomputed numbers. Status counts backfilled from the ask outcomes; token/cost sums are NULL for pre-token days and fill forward.
 
 ### Why these indexes
 
 - `(source, ts DESC)` — every dashboard query is "events for source X over the last N days, newest first." This is the workhorse.
 - `(source, outcome)` — the error feed on `/admin` filters by outcome.
-- `(source, question_hash)` — supports the "show me every time someone asked this question" cluster view on `/admin`.
+- `(source, dedup_hash)` — supports the "show me every time someone asked this question" cluster view on `/admin`.
 
 ### Why the `UNIQUE` constraint matters
 
-If a consumer retries an ingest call (network blip, deploy restart), the `(source, ts, question_hash)` triple makes the second write a no-op via `INSERT OR IGNORE`. Not strict idempotency — two genuinely-different requests with the same question and (millisecond-identical) timestamp would collapse — but that collision is vanishingly rare and the failure mode (one row instead of two) is benign.
+If a consumer retries an ingest call (network blip, deploy restart), the `(source, ts, dedup_hash)` triple makes the second write a no-op via `INSERT OR IGNORE`. Not strict idempotency — two genuinely-different requests with the same question and (millisecond-identical) timestamp would collapse — but that collision is vanishingly rare and the failure mode (one row instead of two) is benign.
 
 ---
 
 ## 6. UI surfaces
+
+> **v0.2 note.** The surfaces below describe the v0.1 single-source `ask` dashboard. v0.2 made the UI **source-aware** (a multi-app overview + per-source selector) and added a **status axis** (`ok`/`error`/`aborted`, generalizing the ask outcomes) and a **cost/spend** view driven by the new token + `cost_usd` columns. The `ask`-specific charts (citation histogram, top retrieved IDs, first-token latency) render for `ask` sources; non-`ask` sources show the universal status + cost + latency surfaces. See `docs/v0.2-multi-app-design.md` §4 for the full v0.2 UI spec.
 
 ### Public `/` — aggregate-only
 
@@ -298,7 +346,7 @@ Question text is never rendered on this page.
 
 6. **Events table** — paginated, default-sorted newest first. Columns: id, ts, outcome, total_ms, first_token_ms, citation_count, question (truncated). Filter: outcome.
 7. **Error feed** — `outcome != 'ok'` only. Columns: ts, outcome, errorMessage, question. Click-through to the full event.
-8. **Question clusters** — group by `question_hash`, show count + most recent ts + sample question text. The "what do users actually ask" view.
+8. **Question clusters** — group by `dedup_hash`, show count + most recent ts + sample question text. The "what do users actually ask" view.
 
 ### Admin `/admin/[id]` — single event
 
@@ -332,15 +380,19 @@ trace-pack/
 │   │   ├── migrations/
 │   │   │   ├── 001_init.sql
 │   │   │   ├── 002_rollup.sql
-│   │   │   └── 003_rate_limit.sql
-│   │   └── migrate.ts           runs every migration in order; idempotent
+│   │   │   ├── 003_rate_limit.sql
+│   │   │   ├── 004_multi_app.sql      v0.2: universal core (status + tokens + cost), question_hash→dedup_hash
+│   │   │   └── 005_rollup_multi_app.sql  v0.2: status + spend rollup columns
+│   │   └── migrate.ts           runs every migration in order; tracked in schema_migrations
 │   ├── ingest/
-│   │   ├── schema.ts            Zod IngestEvent schema
+│   │   ├── schema.ts            Zod IngestEvent union (AskEvent | GenericEvent)
+│   │   ├── handler.ts           parse → auth → cost → write orchestration
 │   │   ├── auth.ts              bearer-token resolution from env
 │   │   └── write.ts             insert-or-ignore wrapper
 │   ├── queries/
 │   │   ├── homepage.ts          one query per public chart
 │   │   ├── admin.ts             events table, error feed, clusters
+│   │   ├── sources.ts           v0.2: per-source list + multi-app overview
 │   │   └── rollup.ts            the daily aggregation SQL
 │   ├── charts/
 │   │   ├── TrafficSparkline.tsx
@@ -348,15 +400,14 @@ trace-pack/
 │   │   ├── LatencyLines.tsx
 │   │   ├── CitationHistogram.tsx
 │   │   └── TopRetrieved.tsx
-│   ├── lib/
-│   │   ├── backfill-parse.ts    pure parse + map logic for the backfill script
-│   │   ├── dates.ts             UTC day-offset helpers
-│   │   ├── format.ts            canonical admin timestamp/number formatting
-│   │   ├── palette.ts           chart color tokens mirroring globals.css :root
-│   │   ├── rateLimit.ts         Turso-backed token bucket for /api/ingest
-│   │   └── timingSafeCompare.ts constant-time string equality
-│   └── types/
-│       └── events.ts            shared types from Zod schema
+│   └── lib/
+│       ├── backfill-parse.ts    pure parse + map logic for the backfill script
+│       ├── dates.ts             UTC day-offset helpers
+│       ├── format.ts            canonical admin timestamp/number formatting
+│       ├── palette.ts           chart color tokens mirroring globals.css :root
+│       ├── pricing.ts           v0.2: per-model token→cost_usd table + derivation
+│       ├── rateLimit.ts         Turso-backed token bucket for /api/ingest
+│       └── timingSafeCompare.ts constant-time string equality
 ├── scripts/
 │   └── backfill.ts              read vercel logs --json, POST to /api/ingest
 ├── package.json
@@ -459,22 +510,24 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 
 ## 11. Known constraints & future work
 
-### v0.1 known constraints
+### Resolved in v0.2 (were v0.1 constraints)
 
-- **One event type (`ask`).** The schema's discriminator is ready for more; v0.1 ships with one.
-- **One consumer.** `ask-zeroindex` only. Multi-tenant UI is v0.2.
-- **No cost metrics.** Current event shape has no token counts. Additive when consumers start emitting them.
+- ~~**One event type (`ask`).**~~ The schema is now a union; `ask` is one type, any other app sends a `GenericEvent`.
+- ~~**One consumer.**~~ Multiple consumers (`ask-zeroindex`, `contract-lens`, intake-zero) + a source-aware UI.
+- ~~**No cost metrics.**~~ Universal token core + derived `cost_usd` and a spend view.
+
+### Still-current constraints
+
 - **Basic auth only.** Fine for a single owner; replace before any second user gets `/admin` access.
 - **No alerting.** Threshold breaches are visible on next page load, not pushed.
 
-### v0.2 candidate work
+### Candidate work (post-v0.2)
 
-- Multi-source UI: source selector + per-source URLs (`traces.zeroindex.ai/s/<source>`)
-- Cost dashboard: requires consumers to emit `inputTokens` + `outputTokens` + per-model pricing table
 - Threshold alerting: webhook on `error_rate_24h > X` or `p95_total_ms > Y`
 - Live-tail view: server-sent events feeding a single tail page
 - Question-cluster better than `hash` grouping: embedding-based similarity for grouping near-duplicate questions
 - Per-event drill-down on the public page with question text redacted
+- Per-source URLs (`traces.zeroindex.ai/s/<source>`) to complement the in-page source selector
 
 ### v0.2.1 polish backlog
 
@@ -501,8 +554,9 @@ Known P2-minor / P3 cleanups, tracked rather than chased.
 - **First consumer:** [`zeroindex-ai/ask-zeroindex`](https://github.com/zeroindex-ai/ask-zeroindex)
 - **Eval reports site:** [`zeroindex-ai/evals-site`](https://github.com/zeroindex-ai/evals-site) — `evals.zeroindex.ai`
 - **Website repo:** [`zeroindex-ai/zeroindexai`](https://github.com/zeroindex-ai/zeroindexai)
-- **This repo:** [`zeroindex-ai/trace-pack`](https://github.com/zeroindex-ai/trace-pack) (planned)
-- **Live site:** `traces.zeroindex.ai` (planned)
+- **This repo:** [`zeroindex-ai/trace-pack`](https://github.com/zeroindex-ai/trace-pack)
+- **Live site:** `traces.zeroindex.ai`
+- **v0.2 design spec:** [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md)
 
 ---
 
