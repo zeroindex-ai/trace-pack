@@ -21,6 +21,18 @@ describe('priceFor', () => {
     expect(priceFor('Claude-Sonnet-4-6')).toEqual({ inputPer1M: 3, outputPer1M: 15 });
   });
 
+  it('longest match wins — a specific id is not shadowed by a broader prefix', () => {
+    // Both 'claude-opus-4' ($15/$75) and 'claude-opus-4-5' ($5/$25) match this
+    // id by substring. The most-specific (longest) key must win regardless of
+    // table order. Under the old first-match-wins logic this would resolve to
+    // $15/$75 if the broad 'claude-opus-4' key were listed first.
+    expect(priceFor('claude-opus-4-5-20260101')).toEqual({ inputPer1M: 5, outputPer1M: 25 });
+    expect(priceFor('claude-opus-4-6')).toEqual({ inputPer1M: 5, outputPer1M: 25 });
+    // The broad prefix still applies to the legacy ids it is meant to cover.
+    expect(priceFor('claude-opus-4-0')).toEqual({ inputPer1M: 15, outputPer1M: 75 });
+    expect(priceFor('claude-opus-4-1')).toEqual({ inputPer1M: 15, outputPer1M: 75 });
+  });
+
   it('returns null for an unknown model', () => {
     expect(priceFor('gpt-4o')).toBeNull();
     expect(priceFor(null)).toBeNull();

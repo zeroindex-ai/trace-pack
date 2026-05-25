@@ -46,22 +46,22 @@ function emptyStatusCounts(): Record<Status, number> {
 }
 
 async function sourcesForDay(client: Client, day: string): Promise<string[]> {
-  const { startIso, endIso } = dayBounds(day);
+  const { startIso, nextDayStartIso } = dayBounds(day);
   const res = await client.execute({
-    sql: 'SELECT DISTINCT source FROM events WHERE ts >= ? AND ts <= ? ORDER BY source',
-    args: [startIso, endIso],
+    sql: 'SELECT DISTINCT source FROM events WHERE ts >= ? AND ts < ? ORDER BY source',
+    args: [startIso, nextDayStartIso],
   });
   return res.rows.map((r) => String(r.source));
 }
 
 async function aggregateSource(client: Client, source: string, day: string): Promise<RollupSummary | null> {
-  const { startIso, endIso } = dayBounds(day);
+  const { startIso, nextDayStartIso } = dayBounds(day);
   const res = await client.execute({
     sql: `SELECT outcome, status, total_ms, first_token_ms, citation_count,
                  cost_usd, input_tokens, output_tokens
           FROM events
-          WHERE source = ? AND ts >= ? AND ts <= ?`,
-    args: [source, startIso, endIso],
+          WHERE source = ? AND ts >= ? AND ts < ?`,
+    args: [source, startIso, nextDayStartIso],
   });
   if (res.rows.length === 0) return null;
 
