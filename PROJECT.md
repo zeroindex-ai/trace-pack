@@ -476,9 +476,9 @@ Adding a new source = adding a new `SOURCE_TOKEN_<NAME>` env var + handing the v
 - Question-cluster better than `hash` grouping: embedding-based similarity for grouping near-duplicate questions
 - Per-event drill-down on the public page with question text redacted
 
-### v0.2.1 polish backlog (from the 2026-05-25 credibility review)
+### v0.2.1 polish backlog
 
-Tracked, not chased — trace-pack is A- / ship-as-is with zero P0/P1; these are P2-minor / P3.
+Known P2-minor / P3 cleanups, tracked rather than chased.
 
 - **Bound the `outcome` column for generic events.** Generic events currently store `outcome = outcomeReason ?? status`; setting `outcome = status` (and surfacing the reason only via `outcome_reason`) keeps `outcome` a bounded set. Mostly defensive — the admin already color-codes by the bounded `status`, not `outcome`.
 - **Read-time fallback for not-yet-rolled-up days.** A day before the 00:15 UTC cron (or after a missed run) renders as 0/null with no live fallback. Either backfill-on-read for gaps or document the window explicitly.
