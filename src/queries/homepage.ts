@@ -1,16 +1,18 @@
 import type { Client } from '@libsql/client';
 import { dayBounds, lastNDays, windowBounds } from '@/lib/dates';
-import { OUTCOMES, type Outcome } from '@/ingest/schema';
+import { STATUSES, type Status } from '@/ingest/schema';
 import { percentile } from './rollup';
 
 export { lastNDays } from '@/lib/dates';
 
 export type DailyTraffic = { day: string; events: number };
+// Universal status axis (ok/error/aborted) so the chart works for any event
+// type. The granular ask outcome (retrieval_failed vs stream_failed) still
+// lives on /admin (the outcome column + error feed).
 export type DailyOutcomes = {
   day: string;
   ok: number;
-  retrieval_failed: number;
-  stream_failed: number;
+  error: number;
   aborted: number;
 };
 export type DailyLatency = {
@@ -31,8 +33,8 @@ export type DailySpend = {
   output_tokens: number | null;
 };
 
-function emptyOutcomes(): Record<Outcome, number> {
-  return { ok: 0, retrieval_failed: 0, stream_failed: 0, aborted: 0 };
+function emptyStatuses(): Record<Status, number> {
+  return { ok: 0, error: 0, aborted: 0 };
 }
 
 // CEILING NOTE — live "today" aggregation is unbounded.
@@ -98,7 +100,7 @@ export async function dailyOutcomes(
   const { first, today } = windowEdges(window);
 
   const rollup = await client.execute({
-    sql: `SELECT day, ok, retrieval_failed, stream_failed, aborted
+    sql: `SELECT day, n_ok, n_error, n_aborted
           FROM rollup_daily WHERE source = ? AND day >= ? AND day < ?`,
     args: [source, first, today],
   });
@@ -106,29 +108,28 @@ export async function dailyOutcomes(
   for (const r of rollup.rows) {
     byDay.set(String(r.day), {
       day: String(r.day),
-      ok: Number(r.ok),
-      retrieval_failed: Number(r.retrieval_failed),
-      stream_failed: Number(r.stream_failed),
-      aborted: Number(r.aborted),
+      ok: Number(r.n_ok ?? 0),
+      error: Number(r.n_error ?? 0),
+      aborted: Number(r.n_aborted ?? 0),
     });
   }
 
   const { startIso, endIso } = dayBounds(today);
   const todayRows = await client.execute({
-    sql: `SELECT outcome, COUNT(*) AS n FROM events
-          WHERE source = ? AND ts >= ? AND ts <= ? GROUP BY outcome`,
+    sql: `SELECT status, COUNT(*) AS n FROM events
+          WHERE source = ? AND ts >= ? AND ts <= ? GROUP BY status`,
     args: [source, startIso, endIso],
   });
-  const todayCounts = emptyOutcomes();
+  const todayCounts = emptyStatuses();
   for (const r of todayRows.rows) {
-    const o = String(r.outcome);
-    if ((OUTCOMES as readonly string[]).includes(o)) {
-      todayCounts[o as Outcome] = Number(r.n);
+    const s = r.status == null ? '' : String(r.status);
+    if ((STATUSES as readonly string[]).includes(s)) {
+      todayCounts[s as Status] = Number(r.n);
     }
   }
   byDay.set(today, { day: today, ...todayCounts });
 
-  return window.map((d) => byDay.get(d) ?? { day: d, ...emptyOutcomes() });
+  return window.map((d) => byDay.get(d) ?? { day: d, ...emptyStatuses() });
 }
 
 export async function dailyLatencies(
