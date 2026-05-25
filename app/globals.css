@@ -378,6 +378,11 @@ code.chip {
 .outcome-aborted {
   color: var(--muted-2);
 }
+/* universal status axis (generic events) — bounded set, unlike the open-ended
+   per-app `outcome` reason string. */
+.outcome-error {
+  color: var(--error);
+}
 
 .filter-strip {
   display: flex;

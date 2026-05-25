@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { db } from '@/db/client';
 import { OUTCOMES } from '@/ingest/schema';
-import { fmtHash, fmtMs, fmtTs } from '@/lib/format';
+import { fmtHash, fmtMs, fmtTs, fmtUsd } from '@/lib/format';
 import { errorEvents, questionClusters, recentEvents, type EventRow, type ClusterRow } from '@/queries/admin';
 import { listSources } from '@/queries/sources';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
@@ -28,6 +28,10 @@ function buildHref(source: string, page: number, outcome: OutcomeFilter): string
   return qs ? `/admin?${qs}` : '/admin';
 }
 
+// Universal across event types: the RAG-specific columns (first-token, cites)
+// live on the detail page. `outcome` is colored by the bounded `status` axis
+// (ok/error/aborted) — not the open-ended outcome string — so a new event
+// type's reason can't spawn an unstyled `outcome-*` class.
 function EventTableRow({ row }: { row: EventRow }) {
   return (
     <tr>
@@ -37,13 +41,13 @@ function EventTableRow({ row }: { row: EventRow }) {
         </Link>
       </td>
       <td className="ts">{fmtTs(row.ts)}</td>
+      <td className="num-cell">{row.event}</td>
       <td>
-        <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
+        <span className={`outcome-tag outcome-${row.status}`}>{row.outcome}</span>
       </td>
       <td className="num-cell">{fmtMs(row.total_ms)}</td>
-      <td className="num-cell">{fmtMs(row.first_token_ms)}</td>
-      <td className="num-cell">{row.citation_count ?? '—'}</td>
-      <td className="question">{row.question ?? '—'}</td>
+      <td className="num-cell">{fmtUsd(row.cost_usd)}</td>
+      <td className="question">{row.question ?? row.outcome_reason ?? '—'}</td>
     </tr>
   );
 }
@@ -71,19 +75,15 @@ export default async function AdminPage({
   const totalPages = Math.max(1, Math.ceil(recent.total / PAGE_SIZE));
   const rangeStart = recent.total === 0 ? 0 : offset + 1;
   const rangeEnd = offset + recent.rows.length;
+  // Clusters group by dedup_hash; only meaningful for sources that send a
+  // question (ask). Non-ask sources produce singletons with no sample text.
+  const hasClusters = clusters.some((c) => c.sample_question.trim() !== '');
 
   return (
     <>
       <section className="pt-10 pb-6">
-        <div className="label mb-3">Admin</div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Events.</h1>
-        <p className="mt-4 muted text-base leading-relaxed max-w-5xl">
-          Per-event detail for <code className="chip">{source}</code>. Public dashboard at{' '}
-          <Link href="/" className="inline-link">
-            /
-          </Link>{' '}
-          shows aggregates only.
-        </p>
+        <div className="label mb-3">Admin • Traces</div>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Events</h1>
         {sources.length > 1 && (
           <div className="mt-4">
             <SourceSwitcher sources={sources} current={source} hrefFor={(s) => buildHref(s, 1, 'all')} />
@@ -121,21 +121,21 @@ export default async function AdminPage({
                 <colgroup>
                   <col style={{ width: '64px' }} />
                   <col style={{ width: '150px' }} />
+                  <col style={{ width: '96px' }} />
                   <col style={{ width: '132px' }} />
                   <col style={{ width: '84px' }} />
-                  <col style={{ width: '104px' }} />
-                  <col style={{ width: '64px' }} />
+                  <col style={{ width: '90px' }} />
                   <col />
                 </colgroup>
                 <thead>
                   <tr>
                     <th>ID</th>
                     <th>Timestamp</th>
+                    <th>Event</th>
                     <th>Outcome</th>
                     <th>Total</th>
-                    <th>First token</th>
-                    <th>Cites</th>
-                    <th>Question</th>
+                    <th>Cost</th>
+                    <th>Detail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -195,7 +195,7 @@ export default async function AdminPage({
                     <th>Timestamp</th>
                     <th>Outcome</th>
                     <th>Error</th>
-                    <th>Question</th>
+                    <th>Detail</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -208,10 +208,10 @@ export default async function AdminPage({
                       </td>
                       <td className="ts">{fmtTs(row.ts)}</td>
                       <td>
-                        <span className={`outcome-tag outcome-${row.outcome}`}>{row.outcome}</span>
+                        <span className={`outcome-tag outcome-${row.status}`}>{row.outcome}</span>
                       </td>
                       <td className="question">{row.error_message ?? '—'}</td>
-                      <td className="question">{row.question ?? '—'}</td>
+                      <td className="question">{row.question ?? row.outcome_reason ?? '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -229,8 +229,8 @@ export default async function AdminPage({
           Same question, asked multiple times. Last 30 days. Top {CLUSTER_LIMIT}.
         </p>
         <div className="card">
-          {clusters.length === 0 ? (
-            <div className="empty-state">No data in the last 30 days.</div>
+          {!hasClusters ? (
+            <div className="empty-state">No repeated questions in the last 30 days.</div>
           ) : (
             <div className="table-scroll">
               <table className="admin-table">
