@@ -22,6 +22,7 @@ export const palette = {
 export const chartColors = {
   primary: palette.accent1,
   ok: palette.accentGo,
+  error: palette.error,
   retrievalFailed: palette.warn,
   streamFailed: palette.error,
   aborted: palette.muted2,

@@ -72,7 +72,7 @@ function ChartCard({
 
 function SourceDashboard({ data }: { data: DashboardData }) {
   const hasTraffic = data.traffic.some((d) => d.events > 0);
-  const hasOutcomes = data.outcomes.some((d) => d.ok + d.retrieval_failed + d.stream_failed + d.aborted > 0);
+  const hasOutcomes = data.outcomes.some((d) => d.ok + d.error + d.aborted > 0);
   const hasLatency = data.latencies.some((d) => d.p50_total_ms !== null);
   const hasFirstToken = data.latencies.some((d) => d.p50_first_token_ms !== null);
   const hasSpend = data.spend.some((d) => d.cost_usd !== null);
@@ -92,7 +92,7 @@ function SourceDashboard({ data }: { data: DashboardData }) {
       <ChartCard
         num="01 / Outcomes"
         title="Outcome distribution"
-        subtitle="ok / retrieval_failed / stream_failed / aborted, stacked per day."
+        subtitle="ok / error / aborted, stacked per day."
         hasData={hasOutcomes}
         emptyMessage="No events yet."
       >

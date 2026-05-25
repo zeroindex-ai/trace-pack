@@ -85,7 +85,7 @@ describe('dailyOutcomes', () => {
     await migrate(client);
   });
 
-  it('partitions counts by outcome for past (rollup) and today (live)', async () => {
+  it('counts by status for past (rollup) and today (live)', async () => {
     await seed(client, [
       event('2026-05-13T10:00:00.000Z', { outcome: 'ok' }),
       event('2026-05-13T11:00:00.000Z', { outcome: 'stream_failed' }),
@@ -96,8 +96,9 @@ describe('dailyOutcomes', () => {
 
     const result = await dailyOutcomes(client, 'ask-zeroindex', 7, NOW);
     const byDay = Object.fromEntries(result.map((r) => [r.day, r]));
-    expect(byDay['2026-05-13']).toMatchObject({ ok: 1, stream_failed: 1 });
-    expect(byDay['2026-05-15']).toMatchObject({ ok: 1, aborted: 1 });
+    // stream_failed maps to the universal `error` status.
+    expect(byDay['2026-05-13']).toMatchObject({ ok: 1, error: 1, aborted: 0 });
+    expect(byDay['2026-05-15']).toMatchObject({ ok: 1, error: 0, aborted: 1 });
   });
 });
 
