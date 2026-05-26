@@ -4,7 +4,7 @@ import { migrate } from '../db/migrate';
 import { insertEvent } from '../ingest/write';
 import type { AskEvent, IngestEvent } from '../ingest/schema';
 import { rollupDay } from './rollup';
-import { listSources, sourceOverview } from './sources';
+import { compareSources, listSources, sourceOverview } from './sources';
 
 const NOW = new Date('2026-05-15T12:00:00.000Z');
 
@@ -36,17 +36,54 @@ describe('listSources', () => {
     await migrate(client);
   });
 
-  it('returns distinct sources sorted', async () => {
+  it('returns the known sources in canonical (evals) order, not alphabetical', async () => {
+    // Seed alphabetically-out-of-order; intake-zero would precede repo-xray if
+    // we sorted alphabetically, but canonical order puts repo-xray first.
     await seed(client, [
-      event({ ts: '2026-05-14T01:00:00.000Z', source: 'other-app' }),
-      event({ ts: '2026-05-14T02:00:00.000Z', source: 'ask-zeroindex' }),
+      event({ ts: '2026-05-14T01:00:00.000Z', source: 'intake-zero' }),
+      event({ ts: '2026-05-14T02:00:00.000Z', source: 'repo-xray' }),
       event({ ts: '2026-05-14T03:00:00.000Z', source: 'ask-zeroindex' }),
+      event({ ts: '2026-05-14T04:00:00.000Z', source: 'contract-lens' }),
     ]);
-    expect(await listSources(client)).toEqual(['ask-zeroindex', 'other-app']);
+    const sources = await listSources(client);
+    expect(sources).toEqual(['ask-zeroindex', 'contract-lens', 'repo-xray', 'intake-zero']);
+    // The whole point of this change: repo-xray sorts BEFORE intake-zero.
+    expect(sources.indexOf('repo-xray')).toBeLessThan(sources.indexOf('intake-zero'));
+  });
+
+  it('sorts an unknown source after the known four (alphabetically among unknowns)', async () => {
+    await seed(client, [
+      event({ ts: '2026-05-14T01:00:00.000Z', source: 'zzz-other' }),
+      event({ ts: '2026-05-14T02:00:00.000Z', source: 'aaa-other' }),
+      event({ ts: '2026-05-14T03:00:00.000Z', source: 'intake-zero' }),
+      event({ ts: '2026-05-14T04:00:00.000Z', source: 'ask-zeroindex' }),
+    ]);
+    expect(await listSources(client)).toEqual([
+      'ask-zeroindex',
+      'intake-zero',
+      'aaa-other',
+      'zzz-other',
+    ]);
   });
 
   it('returns empty when there are no events', async () => {
     expect(await listSources(client)).toEqual([]);
+  });
+});
+
+describe('compareSources', () => {
+  it('orders known sources by canonical (evals) position', () => {
+    expect([...['intake-zero', 'repo-xray', 'ask-zeroindex', 'contract-lens']].sort(compareSources)).toEqual([
+      'ask-zeroindex',
+      'contract-lens',
+      'repo-xray',
+      'intake-zero',
+    ]);
+  });
+
+  it('places any unknown source after all known ones', () => {
+    expect(compareSources('intake-zero', 'zzz-other')).toBeLessThan(0);
+    expect(compareSources('zzz-other', 'ask-zeroindex')).toBeGreaterThan(0);
   });
 });
 
@@ -84,13 +121,25 @@ describe('sourceOverview', () => {
     expect(bySource['other-app']?.costUsd).toBeNull();
   });
 
-  it('sorts by event count desc', async () => {
+  it('returns rows in canonical (evals) order regardless of event count', async () => {
+    // intake-zero is the busiest, but canonical order still puts it last among
+    // the known sources — ordering is by SOURCE_ORDER, not traffic.
     await seed(client, [
-      event({ ts: '2026-05-15T01:00:00.000Z', source: 'quiet' }),
-      event({ ts: '2026-05-15T02:00:00.000Z', source: 'busy' }),
-      event({ ts: '2026-05-15T03:00:00.000Z', source: 'busy' }),
+      event({ ts: '2026-05-15T01:00:00.000Z', source: 'intake-zero' }),
+      event({ ts: '2026-05-15T02:00:00.000Z', source: 'intake-zero' }),
+      event({ ts: '2026-05-15T03:00:00.000Z', source: 'intake-zero' }),
+      event({ ts: '2026-05-15T04:00:00.000Z', source: 'repo-xray' }),
+      event({ ts: '2026-05-15T05:00:00.000Z', source: 'ask-zeroindex' }),
+      event({ ts: '2026-05-15T06:00:00.000Z', source: 'contract-lens' }),
+      event({ ts: '2026-05-15T07:00:00.000Z', source: 'zzz-other' }),
     ]);
     const overview = await sourceOverview(client, 30, NOW);
-    expect(overview.map((s) => s.source)).toEqual(['busy', 'quiet']);
+    expect(overview.map((s) => s.source)).toEqual([
+      'ask-zeroindex',
+      'contract-lens',
+      'repo-xray',
+      'intake-zero',
+      'zzz-other',
+    ]);
   });
 });

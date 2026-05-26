@@ -1,10 +1,26 @@
 import type { Client } from '@libsql/client';
 import { dayBounds, lastNDays } from '@/lib/dates';
 
-// Distinct event sources, for the source switcher.
+// Canonical app order, mirroring evals.zeroindex.ai's landing-page order
+// (evals-site/public/index.html). The two repos can't share a file, so keep
+// this in sync if the evals lineup changes.
+export const SOURCE_ORDER = ['ask-zeroindex', 'contract-lens', 'repo-xray', 'intake-zero'] as const;
+
+// Sort by position in SOURCE_ORDER; any source not in the list sorts after the
+// known ones, alphabetically among themselves (a new/unexpected source still
+// appears deterministically — just at the end — rather than being dropped).
+export function compareSources(a: string, b: string): number {
+  const ia = SOURCE_ORDER.indexOf(a as (typeof SOURCE_ORDER)[number]);
+  const ib = SOURCE_ORDER.indexOf(b as (typeof SOURCE_ORDER)[number]);
+  const ra = ia === -1 ? SOURCE_ORDER.length : ia;
+  const rb = ib === -1 ? SOURCE_ORDER.length : ib;
+  return ra - rb || a.localeCompare(b);
+}
+
+// Distinct event sources, for the source switcher, in canonical app order.
 export async function listSources(client: Client): Promise<string[]> {
-  const res = await client.execute('SELECT DISTINCT source FROM events ORDER BY source');
-  return res.rows.map((r) => String(r.source));
+  const res = await client.execute('SELECT DISTINCT source FROM events');
+  return res.rows.map((r) => String(r.source)).sort(compareSources);
 }
 
 export type SourceSummary = {
@@ -90,5 +106,5 @@ export async function sourceOverview(
       costUsd: a.cost,
       lastSeen: lastSeen.get(source) ?? null,
     }))
-    .sort((x, y) => y.events - x.events || x.source.localeCompare(y.source));
+    .sort((x, y) => compareSources(x.source, y.source));
 }
