@@ -215,6 +215,52 @@ describe('handleIngest', () => {
     expect(Number(rows.rows[0]?.cost_usd)).toBe(18);
   });
 
+  it('falls back to a consumer-supplied costMicroUsd when no model/tokens are present', async () => {
+    // A consumer (e.g. repo-xray) that makes multiple model calls per event,
+    // computes its own cost, and omits model/tokens. costMicroUsd is USD × 1e6.
+    const generic = {
+      source: 'ask-zeroindex',
+      event: 'analyze',
+      ts: '2026-05-15T12:34:56.789Z',
+      status: 'ok',
+      costMicroUsd: 1_500_000,
+    };
+    const res = await handleIngest(client, ingestRequest(generic, { auth: `Bearer ${VALID_TOKEN}` }));
+    expect(res.status).toBe(204);
+
+    const rows = await client.execute('SELECT cost_usd FROM events');
+    expect(Number(rows.rows[0]?.cost_usd)).toBe(1.5);
+  });
+
+  it('prefers token-derived cost over costMicroUsd when both are present', async () => {
+    // Token-derivation wins; the fallback only applies when it yields null.
+    // 1M input @ $3 + 1M output @ $15 = $18 for claude-sonnet-4-6.
+    const withBoth = validEvent({
+      inputTokens: 1_000_000,
+      outputTokens: 1_000_000,
+      costMicroUsd: 1_500_000,
+    });
+    const res = await handleIngest(client, ingestRequest(withBoth, { auth: `Bearer ${VALID_TOKEN}` }));
+    expect(res.status).toBe(204);
+
+    const rows = await client.execute('SELECT cost_usd FROM events');
+    expect(Number(rows.rows[0]?.cost_usd)).toBe(18);
+  });
+
+  it('stores a null cost when neither token usage nor costMicroUsd is present', async () => {
+    const generic = {
+      source: 'ask-zeroindex',
+      event: 'analyze',
+      ts: '2026-05-15T12:34:56.789Z',
+      status: 'ok',
+    };
+    const res = await handleIngest(client, ingestRequest(generic, { auth: `Bearer ${VALID_TOKEN}` }));
+    expect(res.status).toBe(204);
+
+    const rows = await client.execute('SELECT cost_usd FROM events');
+    expect(rows.rows[0]?.cost_usd).toBeNull();
+  });
+
   it('accepts a non-ask (generic) event and stores its status', async () => {
     const generic = {
       source: 'ask-zeroindex', // reuse the configured token; source != event type

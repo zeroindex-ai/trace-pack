@@ -15,12 +15,17 @@ function dedupInput(event: IngestEvent, rawJson: string): string {
 export async function insertEvent(client: Client, event: IngestEvent, rawJson: string): Promise<WriteResult> {
   const dedupHash = createHash('sha256').update(dedupInput(event, rawJson)).digest('hex');
   const { status, outcome, outcomeReason } = deriveOutcome(event);
-  const cost = costOf(event.model, {
-    inputTokens: event.inputTokens,
-    outputTokens: event.outputTokens,
-    cacheCreationInputTokens: event.cacheCreationInputTokens,
-    cacheReadInputTokens: event.cacheReadInputTokens,
-  });
+  // Token-derived price first (unchanged behavior); fall back to a
+  // consumer-supplied cost when the model+tokens yield nothing. repo-xray sends
+  // `costMicroUsd` (USD × 1e6, integer) with no model/tokens, so its precise
+  // multi-call cost lands in the REAL-USD `cost_usd` column instead of $0.
+  const cost =
+    costOf(event.model, {
+      inputTokens: event.inputTokens,
+      outputTokens: event.outputTokens,
+      cacheCreationInputTokens: event.cacheCreationInputTokens,
+      cacheReadInputTokens: event.cacheReadInputTokens,
+    }) ?? (event.costMicroUsd != null ? event.costMicroUsd / 1_000_000 : null);
   const ask = isAsk(event) ? event : null;
 
   const result = await client.execute({
