@@ -22,6 +22,11 @@ const coreFields = {
   cacheReadInputTokens: z.number().int().min(0).nullable().optional(),
   totalMs: z.number().int().min(0).nullable().optional(),
   errorMessage: z.string().nullable().optional(),
+  // Consumer-supplied precise cost in micro-USD (USD × 1e6, integer). For
+  // consumers that make multiple model calls per event and compute their own
+  // cost (e.g. repo-xray), omitting `model`/tokens. Used as a fallback when the
+  // model+tokens don't yield a token-derived price (see write.ts).
+  costMicroUsd: z.number().int().min(0).nullable().optional(),
 };
 
 // The `ask` extension — the original RAG Q&A shape, unchanged on the wire so
