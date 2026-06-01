@@ -1,3 +1,76 @@
+# trace-pack — agent guide
+
+Minimal LLM observability dashboard for Claude-based apps. Next 16 app on Vercel,
+Turso (libsql) for state. Companion to `@zeroindex-ai/eval-pack`.
+
+The *why* and the architecture live in `PROJECT.md`. This file is how to work here.
+
+## Guardrails (do not violate)
+
+- **Never commit secrets.** `.env.local` and real Turso/Anthropic/Resend/etc. keys
+  stay out of git (`.gitignore` covers them — double-check before `git add -A`).
+- **Public repo → sanitize docs.** No machine paths, vault names, private-memory
+  refs, or sprint/portfolio framing in any committed `.md`. The `md-review-gate`
+  hook enforces this at commit time.
+- **Branch before the first commit.** Run `git branch` and confirm — repos are
+  sometimes left on an in-flight feature branch. Don't assume `main`.
+- **Visual changes: preview before commit.** Run the dev server and get a human
+  eyeball/approval BEFORE committing UI changes. Non-visual changes follow normal flow.
+- **Scope UI edits to the named element.** "Make X taller" changes only X. Decouple
+  shared tokens first; don't grow siblings.
+- **Admin stays Basic Auth.** `/admin` is gated by root `proxy.ts` (Basic Auth,
+  `ADMIN_PASSWORD` + `timingSafeEqual`). Do NOT add a signin page, cookie, or users
+  table until there's a second admin user.
+- **Public endpoints need rate limiting + SSRF guards** (P0). A dedupe hash is not a
+  rate limit. The `POST /api/ingest` path is rate-limited per source (`src/lib/rateLimit.ts`,
+  atomic single-statement upsert-with-guard) on top of the ingest dedupe.
+
+## Commands
+
+```bash
+pnpm dev          # local dev (localhost:3000)
+pnpm test         # vitest (in-memory libsql)
+pnpm typecheck    # tsc --noEmit
+pnpm lint         # eslint
+pnpm build        # next build (also the CI gate)
+pnpm format       # prettier --write .
+
+# migrations: raw SQL under src/db/migrations/, idempotent runner in src/db/migrate.ts
+pnpm tsx --env-file=.env.local src/db/migrate.ts   # apply migrations
+pnpm tsx scripts/migrate-prod.ts                   # one-off runner vs a non-local Turso DB
+
+# seed a local file:db with fake traffic
+TURSO_DATABASE_URL=file:./local.db pnpm tsx scripts/seed-local.ts
+```
+
+## Conventions & gotchas
+
+- **Lazy `db()` singleton.** The libsql client + strict `env()` init are deferred to
+  first request, NOT module load — a top-level `env()` makes `next build` require
+  runtime secrets and preview deploys fail. Keep DB access behind the lazy proxy.
+- **libsql on Vercel needs the undici fetch workaround.** Vercel's fetch
+  instrumentation corrupts libsql's request ("expected non-null body source"); the
+  client passes `undici`'s `fetch` (decomposed to url+init) — see `src/db/client.ts`.
+  Don't replace it with the global fetch.
+- **Migrations are raw SQL, not drizzle.** Numbered `.sql` files in `src/db/migrations/`
+  applied by the idempotent runner in `src/db/migrate.ts`. Add the next-numbered file;
+  don't reach for an ORM migration generator.
+- **Ingest is idempotent.** `POST /api/ingest` uses `INSERT OR IGNORE` so backfills and
+  retries don't double-count. Cost is derived at ingest (`src/lib/pricing.ts`).
+- **Stale CSS after a `globals.css` edit** = Next 16 + Turbopack caching. `rm -rf
+  .next` + restart dev (hard-refresh/incognito won't fix it).
+- **Favicon lives in `app/favicon.ico`**, not `public/` (the app router intercepts it).
+- **SSR everything** — no client-side data fetches for first paint; render on the server.
+
+## Where to look
+
+- `PROJECT.md` — why it exists, decisions, architecture, the public contract.
+- `docs/v0.2-multi-app-design.md` — the authoritative v0.2 generalized-schema/ingest/UI spec.
+- Chrome/layout: the `zeroindex-app-layout` skill (canonical header/footer/spacing).
+- Design tokens: `STYLE_GUIDE.md` in the `zeroindex-site` repo (mirrored in
+  `app/globals.css`). Don't invent colors.
+- Deploy: the `deploy-zeroindex-vercel-app` skill (Turso → Vercel env → migrations → domain).
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
