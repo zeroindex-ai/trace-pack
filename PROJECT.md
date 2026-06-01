@@ -262,6 +262,10 @@ const coreFields = {
   cacheReadInputTokens: z.number().int().min(0).nullable().optional(),
   totalMs: z.number().int().min(0).nullable().optional(),
   errorMessage: z.string().nullable().optional(),
+  // Consumer-supplied precise cost (USD × 1e6, integer) — for consumers that make
+  // multiple model calls per event and compute their own cost (e.g. repo-xray),
+  // omitting model/tokens. Fallback when model+tokens don't yield a derived price.
+  costMicroUsd: z.number().int().min(0).nullable().optional(),
 };
 
 // The RAG Q&A extension — unchanged on the wire from v0.1.
@@ -514,9 +518,10 @@ frozen-lockfile): `pnpm typecheck` → `pnpm lint` → `pnpm test` → `pnpm bui
 pass; `build` is part of the gate because a `next build` regression (e.g. a top-level
 `env()` breaking preview deploys) won't surface in unit tests.
 
-> Known test-hardening items (rate-limit burst test asserts SQL-guard serialization not OS
-> concurrency; `priceFor` longest-match ordering) are tracked in §"Known constraints" v0.2.1
-> backlog.
+> The rate-limit burst test (`rateLimit.test.ts`) asserts the single-statement SQL guard
+> *serializes* — not OS-level concurrency: libsql's `:memory:` client runs statements
+> one-at-a-time, so the test proves the guard's correctness rather than true parallelism
+> (annotated inline at the assertion).
 
 ---
 
@@ -574,13 +579,6 @@ Newest first. Dated. Rationale lives in §2 — entries forward-reference rather
 - **Read-time fallback for not-yet-rolled-up days.** A day before the 00:15 UTC cron (or
   after a missed run) renders as 0/null with no live fallback. Either backfill-on-read for
   gaps or document the window explicitly.
-- **`priceFor` match safety** (`src/lib/pricing.ts`). Use longest-match, or add a test
-  asserting the price table is ordered most-specific-first, so a new model id can't be
-  shadowed by a broader `claude-opus-4` prefix.
-- **`dayBounds` half-open interval.** Use `ts >= start AND ts < nextDay` instead of the
-  inclusive `<= endIso` upper bound, to drop the millisecond-boundary ambiguity.
-- **Harden/annotate the rate-limit burst test.** It asserts the single-statement SQL guard
-  serializes, not OS-level concurrency; annotate that explicitly, or drive true parallelism.
 
 **Candidate work (post-v0.2):**
 
