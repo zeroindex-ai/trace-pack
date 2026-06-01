@@ -1,6 +1,6 @@
 # trace-pack — Project Documentation
 
-> **Status: shipped v0.2** · **Phase: maintenance** — public dashboard live at [traces.zeroindex.ai](https://traces.zeroindex.ai). v0.2 generalized the original `ask`-shaped model into a universal multi-app event core (status axis + tokens + cost) with a source-aware UI; it now observes multiple ZeroIndex Claude apps (`ask-zeroindex`, `contract-lens`, intake-zero) via their dual-write paths, not just the one RAG consumer. The v0.2 model is specified in [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md) (marked shipped); the sections below were written for v0.1 and are annotated where v0.2 changed them.
+> **Status: shipped v0.2** · **Phase: Production** — public dashboard live at [traces.zeroindex.ai](https://traces.zeroindex.ai). v0.2 generalized the original `ask`-shaped model into a universal multi-app event core (status axis + tokens + cost) with a source-aware UI; it now observes multiple ZeroIndex Claude apps (`ask-zeroindex`, `contract-lens`, intake-zero) via their dual-write paths, not just the one RAG consumer. The v0.2 model is specified in [`docs/v0.2-multi-app-design.md`](./docs/v0.2-multi-app-design.md) (marked shipped); the sections below were written for v0.1 and are annotated where v0.2 changed them.
 
 This document captures the scope, strategic decisions, architecture, public contracts, distribution shape, and ordered work list for `trace-pack`. It exists to:
 
