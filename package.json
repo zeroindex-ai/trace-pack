@@ -34,7 +34,7 @@
     "tailwindcss": "^4",
     "tsx": "^4.22.2",
     "typescript": "^6",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.8"
   },
   "engines": {
     "node": ">=20"
