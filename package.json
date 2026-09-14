@@ -17,8 +17,8 @@
   "dependencies": {
     "@libsql/client": "^0.17.3",
     "next": "16.2.11",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
     "recharts": "^3.8.1",
     "undici": "^8.9.0",
     "zod": "^4.4.2"
